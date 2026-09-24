@@ -3,7 +3,7 @@
 | Phase | Status | Notes |
 |---|---|---|
 | 0 Setup | Done, awaiting user OK | Verified: build, signed route, AI Vision (HTTP 200), 5 tables + `match_assets` via REST. Migration applied by pasting 0001_init.sql into the dashboard SQL Editor (CLI not installed). |
-| 1 Upload & storage | Not started | |
+| 1 Upload & storage | Done, awaiting user OK | Own multi-file input (not the Cloudinary widget) + exifr on the real `File` + direct signed upload (`phash: true` in the signed params) + `/api/assets` + `/upload` grid. Verified end-to-end in the browser with generated fixtures (GPS+time, no-EXIF, oversized and .gif rejected); test data removed. |
 | 2 AI analysis | Not started | |
 | 3 Projects, map, timeline | Not started | |
 | 4 Trust score | Not started | |

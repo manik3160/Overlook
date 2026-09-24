@@ -6,11 +6,13 @@ const bodySchema = z.object({
   paramsToSign: z.record(z.string(), z.unknown()),
 })
 
-// next-cloudinary's signatureEndpoint POSTs { paramsToSign } and expects { signature }.
+// Returns { signature, apiKey } for a direct browser -> Cloudinary signed upload.
+// (The API key is not secret; the API secret never leaves the server.)
 export async function POST(request: Request) {
   const secret = process.env.CLOUDINARY_API_SECRET
-  if (!secret) {
-    return NextResponse.json({ error: "CLOUDINARY_API_SECRET is not set" }, { status: 500 })
+  const apiKey = process.env.CLOUDINARY_API_KEY
+  if (!secret || !apiKey) {
+    return NextResponse.json({ error: "Cloudinary API key/secret not set" }, { status: 500 })
   }
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null))
@@ -22,5 +24,5 @@ export async function POST(request: Request) {
     parsed.data.paramsToSign as Record<string, string | number>,
     secret,
   )
-  return NextResponse.json({ signature })
+  return NextResponse.json({ signature, apiKey })
 }
