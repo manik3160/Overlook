@@ -49,7 +49,7 @@ This is a 1-person hackathon build. Simplicity beats cleverness.
 
 ## 1. Project summary
 
-**Name:** TBD (placeholder: `gallery`).
+**Name:** Overlook (placeholder: `gallery`).
 
 **Hackathon:** Code Cubicle 6.0 (Geek Room) · Problem Statement 02 (Cloudinary track) · online round 3 Oct, offline 11 Oct.
 All project code must be written during the hackathon.
