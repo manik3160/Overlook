@@ -1,5 +1,6 @@
 // Proves credentials + AI Vision add-on work: tags ONE public image and prints the raw response.
 // Run: npm run try-ai-vision [imageUrl]
+// NOTE: AI Vision tag names must be lower-case alphanumeric or hyphens (no underscores).
 import { config } from "dotenv"
 
 config({ path: ".env.local" })
@@ -8,9 +9,9 @@ const DEFAULT_IMAGE =
   "https://res.cloudinary.com/demo/image/upload/samples/landscapes/beach-boat.jpg"
 
 const tagDefinitions = [
-  { name: "water_body", description: "A lake, pond, river, sea or other body of water is visible" },
+  { name: "water-body", description: "A lake, pond, river, sea or other body of water is visible" },
   { name: "vegetation", description: "Trees, grass or other plants are clearly visible" },
-  { name: "garbage_present", description: "Litter or garbage is visible on the ground or in water" },
+  { name: "garbage-present", description: "Litter or garbage is visible on the ground or in water" },
 ]
 
 async function main() {

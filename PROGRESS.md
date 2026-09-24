@@ -2,7 +2,7 @@
 
 | Phase | Status | Notes |
 |---|---|---|
-| 0 Setup | Built, awaiting user verification | Scaffold, env template, migration, Cloudinary/Supabase libs, signed upload route, AI Vision script. Migration + AI Vision run need user's accounts/keys. |
+| 0 Setup | Done, awaiting user OK | Verified: build, signed route, AI Vision (HTTP 200), 5 tables + `match_assets` via REST. Migration applied by pasting 0001_init.sql into the dashboard SQL Editor (CLI not installed). |
 | 1 Upload & storage | Not started | |
 | 2 AI analysis | Not started | |
 | 3 Projects, map, timeline | Not started | |
@@ -19,4 +19,5 @@
 - Stack versions: Next 16, Tailwind 4, shadcn (base-ui variant), zod 4, vitest 5.
 - Cloudinary AI Vision tagging accepts max **10** tag definitions per request; the 12-tag taxonomy (§7.2) needs 2 calls in Phase 2.
 - AI Vision auth is HTTP Basic (`key:secret`) against `https://api.cloudinary.com/v2/analysis/<cloud>/analyze/ai_vision_tagging`.
-- AI Vision free units: _TBD — fill in from Cloudinary console after enabling the add-on (§8)._
+- AI Vision tag names must be lower-case alphanumeric or hyphens (**no underscores**): send `tree-plantation` to the API and map back to `tree_plantation` in `lib/taxonomy.ts`.
+- AI Vision quota (measured 2026-09-24): limit 100,000 units; one tagging request cost **487 units** (~200 calls total). Budget Phase 2 accordingly (2 tagging calls + general/moderation per image); cache-first is mandatory.

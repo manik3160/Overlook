@@ -1,4 +1,4 @@
-create extension if not exists vector;
+create extension if not exists vector with schema extensions;
 
 create table projects (
   id uuid primary key default gen_random_uuid(),
@@ -81,6 +81,7 @@ create or replace function match_assets(
 )
 returns table (id uuid, similarity double precision)
 language sql stable
+set search_path = public, extensions
 as $$
   select a.id, 1 - (a.embedding <=> query_embedding) as similarity
   from assets a
