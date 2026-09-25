@@ -2,6 +2,7 @@ import "server-only"
 import { GoogleGenAI, ApiError, ThinkingLevel } from "@google/genai"
 import { z } from "zod"
 import { RateLimitError } from "@/lib/errors"
+import { factsText, type Narrative, type StoryFacts } from "@/lib/story"
 
 // Free-tier daily quotas differ a lot per model (gemini-3.6-flash allows only 20 requests/day), so the default is a flash-lite model and it is configurable.
 const VISION_MODEL = process.env.GEMINI_VISION_MODEL || "gemini-3.1-flash-lite"
@@ -93,6 +94,25 @@ In 2 to 3 short factual sentences, describe only what visibly changed (for examp
       config: { temperature: 0, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
     })
     return changeSchema.parse(res.text)
+  } catch (err) {
+    return rethrow(err)
+  }
+}
+
+const narrativeSchema = z.object({ problem: z.string().trim().min(10).max(500), action: z.string().trim().min(10).max(500), result: z.string().trim().min(10).max(500) })
+
+// Short impact story written ONLY from the supplied (verified) facts. Text-only call.
+export async function writeStory(facts: StoryFacts): Promise<Narrative> {
+  const prompt = `Write a short impact story for donors about a community field project, in three parts.
+Use ONLY the facts in the JSON below. Do not invent numbers, names, places, quantities or outcomes that are not in the facts. If a fact is missing, leave it out.
+Return ONLY JSON: {"problem": 1-2 sentences on the situation, "action": 1-2 sentences on what was done, "result": 1-2 sentences on the outcome using the given numbers}.
+Each percentage in the facts is the share of PHOTOS (before-set or after-set) that show that condition, not a share of time or activity: describe it as "photos showing ..." or "in X% of the after photos". Plain, factual, warm tone. No exaggeration.
+
+FACTS:
+${factsText(facts)}`
+  try {
+    const res = await ai.models.generateContent({ model: VISION_MODEL, contents: prompt, config: { responseMimeType: "application/json", temperature: 0.3, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } } })
+    return narrativeSchema.parse(JSON.parse(res.text ?? ""))
   } catch (err) {
     return rethrow(err)
   }

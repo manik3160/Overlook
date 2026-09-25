@@ -6,6 +6,9 @@ import Timeline, { type TimelineDay } from "@/components/Timeline"
 import AssetPicker from "@/components/AssetPicker"
 import Scorecard from "@/components/Scorecard"
 import ReportsPanel, { type ReportListItem } from "@/components/ReportsPanel"
+import CampaignCards from "@/components/CampaignCards"
+import StoryPanel from "@/components/StoryPanel"
+import { loadCampaign } from "@/lib/campaign-data"
 import PairsPanel, { type PairView } from "@/components/PairsPanel"
 import { loadEvidence } from "@/lib/project-data"
 import { computeScorecard } from "@/lib/signals"
@@ -36,6 +39,8 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { data: pairRows } = await supabase.from("pairs").select("id, before_asset_id, after_asset_id, distance_m, days_apart, change_summary").eq("project_id", id).order("created_at")
   const { data: reportRows } = await supabase.from("reports").select("id, kind, manifest_sha256, created_at").eq("project_id", id).order("created_at", { ascending: false })
   const reports: ReportListItem[] = (reportRows ?? []).map((r) => ({ id: r.id, kind: r.kind, sha: r.manifest_sha256, createdAt: formatTime(r.created_at) }))
+  const campaign = await loadCampaign(id)
+  const { count: storyCount } = await supabase.from("reports").select("id", { count: "exact", head: true }).eq("project_id", id).eq("kind", "social")
   const byId = new Map(evidence.map((e) => [e.id, e]))
   const pairs: PairView[] = (pairRows ?? []).flatMap((p) => {
     const b = byId.get(p.before_asset_id), a = byId.get(p.after_asset_id)
@@ -95,6 +100,12 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       <section className="space-y-2">
         <h2 className="text-lg font-medium">Reports</h2>
         <ReportsPanel projectId={id} reports={reports} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Campaign cards and story</h2>
+        {campaign && <CampaignCards campaign={campaign} />}
+        <StoryPanel projectId={id} hasStory={(storyCount ?? 0) > 0} />
       </section>
 
       <section className="space-y-2">

@@ -9,7 +9,8 @@
     "lint": "eslint",
     "try-ai-vision": "tsx scripts/try-ai-vision.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "upload-font": "tsx scripts/upload-font.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

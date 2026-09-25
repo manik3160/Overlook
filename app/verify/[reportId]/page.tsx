@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { manifestHash, type ReportManifest } from "@/lib/manifest"
 import { formatDay, formatTime } from "@/lib/dates"
@@ -16,6 +16,8 @@ export default async function VerifyPage(props: PageProps<"/verify/[reportId]">)
   const { data: report } = await supabase.from("reports").select("id, kind, manifest, manifest_sha256, pdf_public_id, created_at").eq("id", reportId).maybeSingle()
   if (!report) notFound()
 
+  const raw = report.manifest as { schema?: string; project?: { id?: string } }
+  if (raw.schema?.startsWith("overlook-story") && raw.project?.id) redirect(`/story/${raw.project.id}`)
   const manifest = report.manifest as ReportManifest
   const recomputed = manifestHash(manifest)
   const match = recomputed === report.manifest_sha256
