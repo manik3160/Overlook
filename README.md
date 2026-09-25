@@ -162,6 +162,27 @@ Start at 100 and subtract; clamp to 0-100. **Verified** 80+, **Needs review** 50
 
 Only the *later* upload of a duplicate pair is penalized, and frames of the same video never flag each other.
 
+## Real sample data (public photos)
+
+`npm run seed:real` uploads 17 real, openly licensed photos from Wikimedia Commons and leaves them **pending** so the real AI
+pipeline analyzes them (about 650 AI Vision units per photo). It removes the previous run first, and `-- --reset-only` removes it.
+
+- **Santiam Canyon Debris Cleanup:** real drone photos of a wildfire-debris site, 9 April and 1 July 2021, with real GPS and
+  capture times (83 days apart, 10 to 15 m between matching viewpoints). Gives real before/after pairs, a scorecard and change summaries.
+- **Oneness Vann Tree Plantation:** real Indian plantation photos (people planting, nursery, water body). Commons has no GPS or
+  time for them, so the app honestly marks them "no metadata" (trust capped at 60).
+- **Planted problems** (built from the real photos): an exact duplicate, a recompressed copy filed under the other project, a
+  Hyderabad street photo far from the site, and a photo of a laptop screen.
+
+The times of the Oregon photos are read as local time (UTC-7); the app groups days in IST, so a day can show as the next date.
+These photos are public data for a rehearsal, not evidence of anything the presenter did. Say so when demoing.
+
+### Sample data credits
+
+- Oregon Department of Transportation, "Drone view of Upward Bound Camp - Before/After cleanup" (4 photos), "Drone view of Gates, Oregon near Upward Bound Camp" and "Debris from a burned building", CC BY 2.0, via Wikimedia Commons.
+- Sant Nirankari Charitable Foundation, "Project: Oneness Vann Site an Tree Cluster Created by Sant Nirankari Mission" (7 photos), CC BY-SA 4.0, via Wikimedia Commons.
+- Syced, "Street views from car in Hyderabad (34538)", CC0, via Wikimedia Commons.
+
 ## Scripts
 
 | Command | What it does |
@@ -171,7 +192,8 @@ Only the *later* upload of a duplicate pair is penalized, and frames of the same
 | `npm run typecheck` / `npm run lint` | TypeScript and ESLint |
 | `npm run try-ai-vision` | Tags one public image with AI Vision to prove credentials and the add-on work |
 | `npm run upload-font` | One-time Hindi font upload to Cloudinary |
-| `npm run seed` / `npm run check-demo` | Demo data and the end-to-end rehearsal check (need `npm run dev` running) |
+| `npm run seed` / `npm run check-demo` | Synthetic demo data and the end-to-end rehearsal check (need the app running; `APP_URL` targets a deployed app). Run `npm run seed:real -- --reset-only` first if real sample data is loaded, because the checker expects exactly its own 14 photos |
+| `npm run seed:real` | Real public sample photos (see above) |
 
 ## Known limitations and quotas (please read)
 
@@ -187,12 +209,11 @@ Only the *later* upload of a duplicate pair is penalized, and frames of the same
 - **No authentication.** It is a single demo workspace; anyone with the link can use the app. The verification and story pages are meant to be public.
 - Report and card images pixelate faces; the verification page's "Original" links point at the untouched originals (needed for traceability).
 
-## Deploying (not done yet)
+## Deploying
 
-Vercel-ready, but the deploy was intentionally left for later. Checklist: add every variable above to the Vercel project,
-set `NEXT_PUBLIC_APP_URL` to the production URL **before** the build (it feeds the QR code), run the Supabase migration on the
-production database, run `npm run upload-font` once, then scan a generated report's QR with a phone. Report generation can take
-up to a minute, so keep the function timeout at 60 s or more.
+Deployed on Vercel (project `overlook`). Checklist: add every variable above to the Vercel project, set `NEXT_PUBLIC_APP_URL`
+to the production URL **before** the build (it feeds the QR code), run the Supabase migration, run `npm run upload-font` once,
+then scan a generated report's QR with a phone. Report generation can take up to a minute, so keep the function timeout at 60 s or more.
 
 ## Project layout
 

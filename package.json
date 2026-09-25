@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "upload-font": "tsx scripts/upload-font.ts",
     "seed": "tsx scripts/seed-demo.ts",
+    "seed:real": "tsx scripts/seed-real.ts",
     "check-demo": "tsx scripts/check-demo-flow.mts"
   },
   "dependencies": {
