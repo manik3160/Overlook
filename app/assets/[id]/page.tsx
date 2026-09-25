@@ -5,6 +5,8 @@ import ReviewButtons from "@/components/ReviewButtons"
 import AnalyzeOneButton from "@/components/AnalyzeOneButton"
 import { supabase } from "@/lib/supabase"
 import { formatTime } from "@/lib/dates"
+import { thumbUrl } from "@/lib/cloudinary-url"
+import { formatClock, playerUrl } from "@/lib/video"
 import type { TrustFlag } from "@/lib/trust"
 
 export const dynamic = "force-dynamic"
@@ -14,6 +16,7 @@ type Asset = {
   width: number | null; height: number | null; taken_at: string | null; lat: number | null; lng: number | null; has_exif: boolean
   status: string; tags: string[] | null; caption: string | null; signals: Record<string, unknown> | null
   trust_score: number | null; trust_flags: TrustFlag[] | null; review_status: string; project_id: string | null; created_at: string
+  parent_asset_id: string | null; frame_second: number | null; transcript: string | null
 }
 
 export default async function AssetPage(props: PageProps<"/assets/[id]">) {
@@ -22,6 +25,9 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
   if (!asset) notFound()
   const { data: project } = asset.project_id ? await supabase.from("projects").select("id, name").eq("id", asset.project_id).maybeSingle() : { data: null }
 
+  const { data: parent } = asset.parent_asset_id ? await supabase.from("assets").select("id, public_id, secure_url").eq("id", asset.parent_asset_id).maybeSingle() : { data: null }
+  const { data: frames } = asset.resource_type === "video" ? await supabase.from("assets").select("id, secure_url, resource_type, frame_second, status, trust_score").eq("parent_asset_id", asset.id).order("frame_second") : { data: null }
+  const second = asset.frame_second !== null ? Number(asset.frame_second) : null
   const flags = asset.trust_flags ?? []
   const preview = asset.secure_url.replace("/upload/", "/upload/c_limit,w_900,f_auto,q_auto/")
 
@@ -30,6 +36,16 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
       <Link href={project ? `/projects/${project.id}` : "/upload"} className="underline">← {project ? project.name : "Uploads"}</Link>
       <h1 className="text-xl font-semibold break-all">{asset.public_id}</h1>
 
+      {asset.resource_type === "video" && (
+        <video controls src={asset.secure_url} className="max-w-full" style={{ maxHeight: 420 }} />
+      )}
+      {parent && second !== null && (
+        <section className="space-y-2 border p-3 text-sm">
+          <p>Frame at <b>{formatClock(second)}</b> of the video <Link href={`/assets/${parent.id}`} className="underline">{parent.public_id}</Link></p>
+          <video controls src={playerUrl(parent.secure_url, second)} className="max-w-full" style={{ maxHeight: 320 }} />
+          <p><a href={playerUrl(parent.secure_url, second)} className="underline" target="_blank" rel="noreferrer">Open the original video at {formatClock(second)}</a></p>
+        </section>
+      )}
       {asset.resource_type === "image" && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={preview} alt={asset.caption ?? asset.public_id} className="max-w-full" style={{ maxHeight: 480 }} />
@@ -54,9 +70,29 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
         <ReviewButtons assetId={asset.id} current={asset.review_status} />
       </section>
 
+      {asset.resource_type === "video" && (
+        <section className="space-y-2 text-sm">
+          <h2 className="text-lg font-medium">Transcript</h2>
+          {asset.transcript ? <p className="max-w-3xl whitespace-pre-wrap">{asset.transcript}</p> : <p>{asset.status === "done" ? "No speech was found in this video." : "Not transcribed yet. Run the analysis from the Upload page."}</p>}
+          <h2 className="text-lg font-medium">Key frames ({frames?.length ?? 0})</h2>
+          <ul className="flex flex-wrap gap-3">
+            {(frames ?? []).map((f) => (
+              <li key={f.id} className="text-xs">
+                <Link href={`/assets/${f.id}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={thumbUrl(f.secure_url, f.resource_type)} alt="" width={160} height={120} />
+                </Link>
+                <div>{formatClock(Number(f.frame_second))} · {f.status}</div>
+                <TrustBadge score={f.trust_score} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="space-y-1 text-sm">
         <h2 className="text-lg font-medium">Details</h2>
-        <div>Status: {asset.status} {asset.status === "pending" && asset.resource_type === "image" && <AnalyzeOneButton assetId={asset.id} />}</div>
+        <div>Status: {asset.status} {asset.status === "pending" && (asset.resource_type === "image" || asset.parent_asset_id === null) && <AnalyzeOneButton assetId={asset.id} />}</div>
         <div>Tags: {asset.tags?.length ? asset.tags.join(", ") : "none"}</div>
         <div>Caption: {asset.caption ?? "none"}</div>
         <div>Signals: {asset.signals && Object.keys(asset.signals).length ? JSON.stringify(asset.signals) : "none"}</div>

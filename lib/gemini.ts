@@ -117,3 +117,23 @@ ${factsText(facts)}`
     return rethrow(err)
   }
 }
+
+const transcriptSchema = z.object({ language: z.string(), transcript: z.string(), summary: z.string() })
+export type Transcription = z.infer<typeof transcriptSchema>
+
+// Speech to text for a video's audio track (mp3). Language is auto-detected; Hindi comes back in Devanagari.
+export async function transcribeAudio(base64Mp3: string): Promise<Transcription> {
+  const prompt = `Transcribe the speech in this audio exactly as spoken, in its original language (write Hindi in Devanagari script).
+Return ONLY JSON: {"language": the language name in English, "transcript": the full transcript, "summary": one plain factual English sentence saying what the speaker describes}.
+If there is no intelligible speech, return {"language": "none", "transcript": "", "summary": ""}. Do not invent words.`
+  try {
+    const res = await ai.models.generateContent({
+      model: VISION_MODEL,
+      contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "audio/mpeg", data: base64Mp3 } }] }],
+      config: { responseMimeType: "application/json", temperature: 0, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+    })
+    return transcriptSchema.parse(JSON.parse(res.text ?? ""))
+  } catch (err) {
+    return rethrow(err)
+  }
+}

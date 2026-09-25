@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { searchAssets, type SearchParams } from "@/lib/search"
 import { TAXONOMY } from "@/lib/taxonomy"
 import { thumbUrl } from "@/lib/cloudinary-url"
+import { formatClock, snippet } from "@/lib/video"
 
 export const dynamic = "force-dynamic"
 
@@ -82,7 +83,10 @@ export default async function SearchPage(props: PageProps<"/search">) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={thumbUrl(h.secure_url, h.resource_type)} alt={h.caption ?? h.public_id} width={240} height={240} />
                 </Link>
-                {h.similarity !== null && <div className="font-medium">{Math.round(h.similarity * 100)}% match</div>}
+                {h.transcriptMatch ? <div className="font-medium">Words found in transcript</div> : h.similarity !== null && <div className="font-medium">{Math.round(h.similarity * 100)}% match</div>}
+                {h.resource_type === "video" && <div>Video</div>}
+                {h.parent_asset_id && h.frame_second !== null && <div>Frame at {formatClock(Number(h.frame_second))} of a video</div>}
+                {h.transcript && <div className="text-xs">“{snippet(h.transcript, params.q ?? "")}”</div>}
                 <TrustBadge score={h.trust_score} reviewStatus={h.review_status} />
                 {h.caption && <div>{h.caption}</div>}
                 {h.tags && h.tags.length > 0 && <div>{h.tags.join(", ")}</div>}

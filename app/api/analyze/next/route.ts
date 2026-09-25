@@ -15,9 +15,8 @@ export async function POST(request: Request) {
 
   let query = supabase
     .from("assets")
-    .select("id, public_id, secure_url, etag")
+    .select("id, public_id, secure_url, etag, resource_type")
     .eq("status", "pending")
-    .eq("resource_type", "image")
     .order("created_at", { ascending: true })
     .limit(parsed.data.limit)
   if (parsed.data.ids) query = query.in("id", parsed.data.ids) // analyse only these (saves credits)

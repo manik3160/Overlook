@@ -4,10 +4,10 @@ import { computeTrust, trustBand, type TrustAsset, type TrustInput, type TrustOt
 const site = { lat: 28.9931, lng: 77.0151 }
 const project: TrustProject = { center_lat: site.lat, center_lng: site.lng, radius_m: 300, start_date: "2026-09-10", end_date: "2026-09-18" }
 const asset = (o: Partial<TrustAsset> = {}): TrustAsset => ({
-  id: "b", created_at: "2026-09-20T00:00:00Z", etag: "e-b", phash: "0000000000000000", project_id: "p1",
+  id: "b", created_at: "2026-09-20T00:00:00Z", etag: "e-b", phash: "0000000000000000", project_id: "p1", parent_asset_id: null,
   lat: site.lat, lng: site.lng, taken_at: "2026-09-12T10:00:00Z", has_exif: true, ...o,
 })
-const other = (o: Partial<TrustOther> = {}): TrustOther => ({ id: "a", created_at: "2026-09-19T00:00:00Z", etag: "e-a", phash: "ffffffffffffffff", project_id: "p1", ...o })
+const other = (o: Partial<TrustOther> = {}): TrustOther => ({ id: "a", created_at: "2026-09-19T00:00:00Z", etag: "e-a", phash: "ffffffffffffffff", project_id: "p1", parent_asset_id: null, ...o })
 const run = (o: Partial<TrustInput> = {}) => computeTrust({ asset: asset(), project, others: [], checks: null, lowConfidence: false, ...o })
 const codes = (r: ReturnType<typeof run>) => r.flags.map((f) => f.code)
 
@@ -95,6 +95,16 @@ describe("computeTrust", () => {
     const r = run({ lowConfidence: true })
     expect(codes(r)).toEqual(["LOW_CONFIDENCE"])
     expect(r.score).toBe(100)
+  })
+  it("near-identical frames of the SAME video are not flagged as reused (tripod shots)", () => {
+    const frame = asset({ id: "f2", parent_asset_id: "video1", phash: "0000000000000000", etag: "e-f2" })
+    const sibling = other({ id: "f1", parent_asset_id: "video1", phash: "0000000000000001", etag: "e-f1" })
+    expect(codes(run({ asset: frame, others: [sibling] }))).toEqual([])
+    expect(codes(run({ asset: frame, others: [other({ id: "video1", phash: "0000000000000000", etag: "e-f2" })] }))).toEqual([]) // its own video
+  })
+  it("a frame that duplicates a photo from a DIFFERENT source is still flagged", () => {
+    const frame = asset({ id: "f2", parent_asset_id: "video1", phash: "0000000000000000" })
+    expect(codes(run({ asset: frame, others: [other({ id: "photo9", phash: "0000000000000003" })] }))).toEqual(["DUPLICATE_REUSED"])
   })
   it("no project means no geofence/timeframe checks", () => {
     expect(codes(run({ project: null, asset: asset({ lat: 0, lng: 0, taken_at: "2020-01-01T00:00:00Z" }) }))).toEqual([])

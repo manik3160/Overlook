@@ -9,17 +9,20 @@ export type SearchHit = {
   id: string; public_id: string; secure_url: string; resource_type: string; caption: string | null; tags: string[] | null
   trust_score: number | null; review_status: string; project_id: string | null; taken_at: string | null; created_at: string
   similarity: number | null
+  parent_asset_id: string | null; frame_second: number | null; transcript: string | null
+  transcriptMatch?: boolean
 }
 export type SearchOutcome = { hits: SearchHit[]; mode: "semantic" | "filters"; hidden: number }
 
 // gemini-embedding-001 scores have a high baseline (unrelated text still scores ~0.7), so two rules apply:
 // an absolute floor, and a margin below the best match. Calibrated on 8 queries x 6 photos: right photo
-// always ranked #1 (0.78-0.88), nonsense queries topped out at 0.73. Retune if results feel too loose/tight.
-export const MIN_SIMILARITY = 0.75
+// always ranked #1 (0.78-0.88), nonsense queries topped out at 0.73. Phase 9 data pushed a nonsense query to 0.77,
+// so the floor moved 0.75 -> 0.78. The gap is narrow (embeddings score everything ~0.7+): retune on real photos.
+export const MIN_SIMILARITY = 0.78
 export const MARGIN_BELOW_BEST = 0.06
 const CANDIDATES = 100
 const MAX_RESULTS = 40
-const COLS = "id, public_id, secure_url, resource_type, caption, tags, trust_score, review_status, project_id, taken_at, created_at"
+const COLS = "id, public_id, secure_url, resource_type, caption, tags, trust_score, review_status, project_id, taken_at, created_at, parent_asset_id, frame_second, transcript"
 
 // Query embeddings are cached in memory so repeating a search never calls Gemini twice.
 const queryCache = new Map<string, number[]>()
@@ -53,9 +56,16 @@ export async function searchAssets(p: SearchParams): Promise<SearchOutcome> {
     if (p.project) query = query.eq("project_id", p.project)
     const { data, error } = await query
     if (error) throw new Error(error.message)
-    const hits = ((data ?? []) as Omit<SearchHit, "similarity">[]).map((r) => ({ ...r, similarity: null })).filter((h) => passesFilters(h, p))
+    const hits = ((data ?? []) as Omit<SearchHit, "similarity">[]).map((r): SearchHit => ({ ...r, similarity: null })).filter((h) => passesFilters(h, p))
     return { hits: hits.slice(0, MAX_RESULTS), mode: "filters", hidden: 0 }
   }
+
+  // Exact words spoken in a video's transcript (ILIKE; % and _ escaped) always rank first.
+  const like = q.replace(/[\\%_]/g, (c) => `\\${c}`)
+  let kw = supabase.from("assets").select(COLS).ilike("transcript", `%${like}%`).limit(20)
+  if (p.project) kw = kw.eq("project_id", p.project)
+  const { data: kwRows } = await kw
+  const keywordHits = ((kwRows ?? []) as Omit<SearchHit, "similarity">[]).map((r): SearchHit => ({ ...r, similarity: null, transcriptMatch: true })).filter((h) => passesFilters(h, p))
 
   const embedding = await embedQuery(q)
   const { data: matches, error } = await supabase.rpc("match_assets", {
@@ -65,7 +75,7 @@ export async function searchAssets(p: SearchParams): Promise<SearchOutcome> {
   })
   if (error) throw new Error(error.message)
   const similarity = new Map<string, number>((matches ?? []).map((m: { id: string; similarity: number }) => [m.id, m.similarity]))
-  if (similarity.size === 0) return { hits: [], mode: "semantic", hidden: 0 }
+  if (similarity.size === 0) return { hits: keywordHits.slice(0, MAX_RESULTS), mode: "semantic", hidden: 0 }
 
   const { data: rows, error: rowsError } = await supabase.from("assets").select(COLS).in("id", [...similarity.keys()])
   if (rowsError) throw new Error(rowsError.message)
@@ -75,5 +85,6 @@ export async function searchAssets(p: SearchParams): Promise<SearchOutcome> {
     .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
   const cutoff = Math.max(MIN_SIMILARITY, (filtered[0]?.similarity ?? 0) - MARGIN_BELOW_BEST)
   const relevant = filtered.filter((h) => (h.similarity ?? 0) >= cutoff)
-  return { hits: relevant.slice(0, MAX_RESULTS), mode: "semantic", hidden: filtered.length - relevant.length }
+  const seen = new Set(keywordHits.map((h) => h.id))
+  return { hits: [...keywordHits, ...relevant.filter((h) => !seen.has(h.id))].slice(0, MAX_RESULTS), mode: "semantic", hidden: filtered.length - relevant.length }
 }

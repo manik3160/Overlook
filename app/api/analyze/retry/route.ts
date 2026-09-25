@@ -8,7 +8,6 @@ export async function POST() {
     .from("assets")
     .update({ status: "pending" })
     .in("status", ["failed", "analyzing"])
-    .eq("resource_type", "image")
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ counts: await getCounts() })
 }

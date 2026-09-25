@@ -12,12 +12,13 @@ export type TrustAsset = {
   etag: string | null
   phash: string | null
   project_id: string | null
+  parent_asset_id: string | null // set for frames extracted from a video
   lat: number | null
   lng: number | null
   taken_at: string | null
   has_exif: boolean
 }
-export type TrustOther = Pick<TrustAsset, "id" | "created_at" | "etag" | "phash" | "project_id">
+export type TrustOther = Pick<TrustAsset, "id" | "created_at" | "etag" | "phash" | "project_id" | "parent_asset_id">
 export type TrustProject = {
   center_lat: number | null
   center_lng: number | null
@@ -45,8 +46,11 @@ export function trustBand(score: number): TrustBand {
 
 const isEarlier = (o: TrustOther, a: TrustAsset) => o.created_at < a.created_at || (o.created_at === a.created_at && o.id < a.id)
 
+// A frame is never a "copy" of its own video or of its sibling frames: a tripod shot yields near-identical frames.
+const sameVideo = (a: TrustAsset, o: TrustOther) => o.id === a.parent_asset_id || o.parent_asset_id === a.id || (a.parent_asset_id !== null && o.parent_asset_id === a.parent_asset_id)
+
 function duplicateFlag(asset: TrustAsset, others: TrustOther[]): { flag: TrustFlag; deduction: number } | null {
-  const earlier = others.filter((o) => isEarlier(o, asset))
+  const earlier = others.filter((o) => isEarlier(o, asset) && !sameVideo(asset, o))
 
   const exact = earlier.find((o) => asset.etag && o.etag === asset.etag)
   if (exact) {

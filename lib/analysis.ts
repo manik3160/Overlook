@@ -4,8 +4,9 @@ import { cachedCall } from "@/lib/cache"
 import { analyzeImage, embedText, type GeminiAnalysis } from "@/lib/gemini"
 import { visionTag, type VisionTags } from "@/lib/vision"
 import { recomputeTrust } from "@/lib/trust-db"
+import { processVideo } from "@/lib/video-processing"
 
-export type AssetRow = { id: string; public_id: string; secure_url: string; etag: string | null }
+export type AssetRow = { id: string; public_id: string; secure_url: string; etag: string | null; resource_type: string }
 export type AnalysisOutcome = { status: "done" | "failed"; error?: string; apiCalls: number; copiedFrom?: string }
 export type Counts = { total: number; pending: number; analyzing: number; done: number; failed: number }
 
@@ -13,7 +14,7 @@ export type Counts = { total: number; pending: number; analyzing: number; done: 
 const smallUrl = (secureUrl: string) => secureUrl.replace("/upload/", "/upload/c_limit,w_1024,h_1024,f_jpg,q_auto/")
 
 export async function getCounts(): Promise<Counts> {
-  const { data } = await supabase.from("assets").select("status").eq("resource_type", "image")
+  const { data } = await supabase.from("assets").select("status")
   const counts: Counts = { total: 0, pending: 0, analyzing: 0, done: 0, failed: 0 }
   for (const row of data ?? []) {
     counts.total++
@@ -51,6 +52,11 @@ async function fetchBase64(url: string): Promise<string> {
 export async function analyzeAsset(asset: AssetRow): Promise<AnalysisOutcome> {
   let apiCalls = 0
   try {
+    if (asset.resource_type === "video") {
+      // transcript + key frames (the frames are queued as normal pending images)
+      const v = await processVideo(asset)
+      return { status: "done", apiCalls: v.apiCalls }
+    }
     const twinId = await copyFromTwin(asset)
     if (twinId) {
       await recomputeTrust([asset.id])
