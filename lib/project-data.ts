@@ -4,6 +4,7 @@ import type { PairCandidate } from "@/lib/pairing"
 import type { ScoreAsset, Signals } from "@/lib/signals"
 
 export type EvidenceRow = ScoreAsset & {
+  public_id: string; etag: string | null; phash: string | null; trust_flags: { code: string; severity: string; reason: string }[] | null
   secure_url: string; resource_type: string; caption: string | null; tags: string[] | null
   taken_at: string | null; created_at: string; lat: number | null; lng: number | null; embedding: number[] | null
 }
@@ -14,7 +15,7 @@ const parseVector = (v: unknown): number[] | null => (typeof v === "string" ? (J
 export async function loadEvidence(projectId: string): Promise<{ rows: EvidenceRow[]; rejected: number }> {
   const { data, error } = await supabase
     .from("assets")
-    .select("id, secure_url, resource_type, caption, tags, taken_at, created_at, lat, lng, embedding, status, signals, trust_score, review_status")
+    .select("id, public_id, etag, phash, trust_flags, secure_url, resource_type, caption, tags, taken_at, created_at, lat, lng, embedding, status, signals, trust_score, review_status")
     .eq("project_id", projectId)
   if (error) throw new Error(error.message)
   const all = data ?? []

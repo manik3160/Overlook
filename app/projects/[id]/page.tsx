@@ -5,6 +5,7 @@ import ProjectMap from "@/components/ProjectMapLoader"
 import Timeline, { type TimelineDay } from "@/components/Timeline"
 import AssetPicker from "@/components/AssetPicker"
 import Scorecard from "@/components/Scorecard"
+import ReportsPanel, { type ReportListItem } from "@/components/ReportsPanel"
 import PairsPanel, { type PairView } from "@/components/PairsPanel"
 import { loadEvidence } from "@/lib/project-data"
 import { computeScorecard } from "@/lib/signals"
@@ -33,6 +34,8 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { rows: evidence, rejected } = await loadEvidence(id)
   const scorecard = computeScorecard(evidence)
   const { data: pairRows } = await supabase.from("pairs").select("id, before_asset_id, after_asset_id, distance_m, days_apart, change_summary").eq("project_id", id).order("created_at")
+  const { data: reportRows } = await supabase.from("reports").select("id, kind, manifest_sha256, created_at").eq("project_id", id).order("created_at", { ascending: false })
+  const reports: ReportListItem[] = (reportRows ?? []).map((r) => ({ id: r.id, kind: r.kind, sha: r.manifest_sha256, createdAt: formatTime(r.created_at) }))
   const byId = new Map(evidence.map((e) => [e.id, e]))
   const pairs: PairView[] = (pairRows ?? []).flatMap((p) => {
     const b = byId.get(p.before_asset_id), a = byId.get(p.after_asset_id)
@@ -87,6 +90,11 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       <section className="space-y-2">
         <h2 className="text-lg font-medium">Before / after</h2>
         <PairsPanel projectId={id} pairs={pairs} />
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-medium">Reports</h2>
+        <ReportsPanel projectId={id} reports={reports} />
       </section>
 
       <section className="space-y-2">
