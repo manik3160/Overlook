@@ -98,7 +98,11 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       <PageHeader
         back={{ href: "/dashboard", label: "Overview" }}
         eyebrow={`Project · ${(project.activity_type ?? "field project").replaceAll("_", " ")}`}
+        size="md"
         title={<b className="font-semibold">{project.name}</b>}
+        lede={assets.length === 0
+          ? "No photos are assigned yet. Add unassigned photos below to start the scorecard."
+          : `${assets.length} photo${assets.length === 1 ? "" : "s"}, ${scorecard.verifiedPct ?? 0}% verified or approved, ${scorecard.flaggedOrUnscored} flagged or waiting for review.`}
         meta={`${project.start_date ? `${formatDay(project.start_date)} → ${project.end_date ? formatDay(project.end_date) : "…"} · ` : ""}${assets.length} photos${center ? ` · geofence ${radius} m · ${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}` : ""}`}
         actions={
           <>

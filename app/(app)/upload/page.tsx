@@ -6,7 +6,8 @@ import { Eyebrow, PageHeader, Section } from "@/components/ui/layout"
 import { EmptyState, InlineNotice } from "@/components/ui/notice"
 import { getCounts } from "@/lib/analysis"
 import { supabase } from "@/lib/supabase"
-import { ArrowUpFromLine } from "lucide-react"
+import SampleSheet from "@/components/SampleSheet"
+import { SAMPLE_MIX } from "@/components/landing/story-data"
 
 export const dynamic = "force-dynamic"
 export const metadata: Metadata = { title: "Upload" }
@@ -22,7 +23,12 @@ export default async function UploadPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Evidence in" title={<><b className="font-semibold">Upload</b> &amp; analyze</>} meta="Images up to 15 MB · videos up to 100 MB" />
+      <PageHeader
+        eyebrow="Evidence in"
+        title={<><b className="font-semibold">Upload</b> &amp; analyze</>}
+        lede={assets.length === 0 ? "Add photos and video. Location and time are read from each file before it leaves your device." : `${assets.length} file${assets.length === 1 ? "" : "s"} in the ledger, ${counts.done} analyzed.`}
+        meta="Images up to 15 MB · videos up to 100 MB"
+      />
 
       <div className="mb-16 grid gap-10 lg:grid-cols-12">
         <section aria-labelledby="up-h" className="grid content-start gap-5 lg:col-span-7">
@@ -38,8 +44,11 @@ export default async function UploadPage() {
       <Section id="all" eyebrow="03 · All uploads" title={`${assets.length} asset${assets.length === 1 ? "" : "s"}`}>
         {error && <InlineNotice tone="error">Could not load assets: {error.message}</InlineNotice>}
         {assets.length === 0 && !error && (
-          <EmptyState icon={<ArrowUpFromLine size={20} strokeWidth={1.5} />} title="No uploads yet">
-            Choose photos or videos above (images up to 15 MB, videos up to 100 MB). Location and time are read from the file before it uploads.
+          <EmptyState
+            visual={<SampleSheet frames={SAMPLE_MIX} cols={4} edgeTop={["Sample roll", "illustrative"]} legend="Blue until analyzed" ariaLabel="Illustrative contact sheet showing how uploads look: blue until analyzed, colour once verified." />}
+            title="No uploads yet"
+          >
+            Your files will appear here as a contact sheet. They stay blue until analyzed, turn to colour once verified, and get red marks if they are flagged for review.
           </EmptyState>
         )}
         <TileGrid>

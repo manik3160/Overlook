@@ -6,6 +6,7 @@ import StatFigure from "@/components/StatFigure"
 import { flagTitle } from "@/components/flag-copy"
 import { Eyebrow, KeyValue } from "@/components/ui/layout"
 import { supabase } from "@/lib/supabase"
+import { NA } from "@/lib/copy"
 import { manifestHash, type ReportManifest } from "@/lib/manifest"
 import { formatDay, formatTime } from "@/lib/dates"
 
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic"
 export const metadata: Metadata = { title: "Report verification" }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const frac = (c: { hits: number; total: number } | null) => (c && c.total ? `${c.hits}/${c.total}` : "–")
+const frac = (c: { hits: number; total: number } | null) => (c && c.total ? `${c.hits}/${c.total}` : NA)
 const link = "text-accent-ink underline decoration-accent-ink/40 underline-offset-[3px] hover:decoration-accent-ink"
 
 // PUBLIC, read-only: the page a QR code opens. It recomputes the hash of the stored manifest.
@@ -58,9 +59,9 @@ export default async function VerifyPage(props: PageProps<"/verify/[reportId]">)
         <Eyebrow>01 · Project</Eyebrow>
         <h2 id="v-project" className="sr-only">Project</h2>
         <KeyValue rows={[
-          ["Name", project?.name ?? "–"],
+          ["Name", project?.name ?? NA],
           ["Activity", project?.activity_type ?? "field project"],
-          ["Dates", project?.start_date ? `${project.start_date} to ${project.end_date ?? "ongoing"}` : "–"],
+          ["Dates", project?.start_date ? `${project.start_date} to ${project.end_date ?? "ongoing"}` : NA],
           ...(project?.center_lat != null && project?.center_lng != null ? [["Site", `${project.center_lat.toFixed(5)}, ${project.center_lng.toFixed(5)} · geofence ${project.radius_m} m`] as [string, string]] : []),
         ]} />
       </section>

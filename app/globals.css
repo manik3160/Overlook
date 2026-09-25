@@ -248,6 +248,22 @@
   font-weight: 600;
   text-wrap: balance;
 }
+@utility text-hero {
+  font-family: var(--font-heading);
+  font-size: clamp(36px, 4.8vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  font-weight: 300;
+  text-wrap: balance;
+}
+@utility text-hero-md {
+  font-family: var(--font-heading);
+  font-size: clamp(30px, 3.4vw, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 300;
+  text-wrap: balance;
+}
 @utility text-title {
   font-size: 15px;
   line-height: 22px;
@@ -264,18 +280,14 @@
   .text-display { font-size: 36px; line-height: 40px; }
 }
 
-/* Numbered eyebrow: a 24px rule then the label (DESIGN.md 4.2) */
-.eyebrow-rule {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.eyebrow-rule::before {
-  content: "";
-  width: 24px;
-  height: 1px;
-  background: var(--fg-3);
-  flex: none;
+/* Section label on a blue highlighter mark, instead of a dash rule (DESIGN.md 4.2).
+   Colours come from tokens, so the Paper theme and the cyanotype chapter invert correctly. */
+.eyebrow-mark {
+  background: var(--mark-bg, var(--accent-ink));
+  color: var(--mark-fg, var(--bg));
+  padding: 2px 8px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 /* Cyanotype develop + crop marks (DESIGN.md 4.9). Photos are square-cornered evidence. */
@@ -350,4 +362,20 @@
 
 @media (prefers-reduced-motion: no-preference) {
   html { scroll-behavior: smooth; }
+}
+
+/* Section headings rise gently as they scroll into view. CSS only; content is never hidden at rest,
+   and browsers without scroll-driven animations simply show everything. */
+@keyframes reveal-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 25%;
+    }
+  }
 }

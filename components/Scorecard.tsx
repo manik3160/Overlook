@@ -1,6 +1,7 @@
 import Link from "next/link"
 import StatFigure from "@/components/StatFigure"
 import { formatDay } from "@/lib/dates"
+import { NA } from "@/lib/copy"
 import type { Cell, Scorecard as ScorecardData } from "@/lib/signals"
 import { cn } from "@/lib/utils"
 
@@ -9,7 +10,7 @@ const pct = (c: Cell | null) => (c && c.total ? (c.hits / c.total) * 100 : null)
 
 // Every number is a link to the photos behind it (see /projects/[id]/evidence). Both parts of x/y stay separate links.
 function Frac({ projectId, metric, set, cell }: { projectId: string; metric: string; set: string; cell: Cell | null }) {
-  if (!cell || cell.total === 0) return <span className="text-fg-3">–</span>
+  if (!cell || cell.total === 0) return <span className="text-fg-3">{NA}</span>
   const href = (part: string) => `/projects/${projectId}/evidence?metric=${metric}&set=${set}&part=${part}`
   const a = "border-b border-accent-ink/45 hover:border-accent-ink hover:text-accent-ink"
   return (
@@ -66,7 +67,7 @@ export default function Scorecard({ projectId, sc, rejected }: { projectId: stri
                 <>
                   <span role="cell" className="flex items-center"><span className="text-eyebrow mr-2 sm:hidden">Before</span><Frac projectId={projectId} metric={r.key} set="before" cell={r.before} /><Mini value={b} tone="before" /></span>
                   <span role="cell" className="flex items-center"><span className="text-eyebrow mr-2 sm:hidden">After</span><Frac projectId={projectId} metric={r.key} set="after" cell={r.after} /><Mini value={a} tone="after" /></span>
-                  <span role="cell" className="text-data text-fg-2 sm:text-right"><span className="text-eyebrow mr-2 sm:hidden">Change</span>{d === null ? "–" : `${d > 0 ? "↑ +" : d < 0 ? "↓ −" : "± "}${Math.abs(d)} pts`}</span>
+                  <span role="cell" className="text-data text-fg-2 sm:text-right"><span className="text-eyebrow mr-2 sm:hidden">Change</span>{d === null ? NA : `${d > 0 ? "↑ +" : d < 0 ? "↓ −" : "± "}${Math.abs(d)} pts`}</span>
                 </>
               )}
               <span role="cell" className={cn("sm:text-right", hasPhases && "max-sm:hidden")}><Frac projectId={projectId} metric={r.key} set="all" cell={r.all} /></span>

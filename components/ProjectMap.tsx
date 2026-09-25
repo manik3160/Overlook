@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/notice"
 import { Sheet } from "@/components/ui/sheet"
 import ProjectFormLazy from "@/components/ProjectForm"
 import type { Project } from "@/lib/project-schema"
+import { NA } from "@/lib/copy"
 
 export type MapPoint = { id: string; lat: number; lng: number; thumb: string; label: string; inside: boolean | null; distanceM: number | null }
 type Props = { center: { lat: number; lng: number } | null; radiusM: number; points: MapPoint[]; project?: Project }
@@ -94,8 +95,8 @@ export default function ProjectMap({ center, radiusM, points, project }: Props) 
               {points.map((p) => (
                 <tr key={p.id} className="border-b border-line">
                   <td className="text-data py-2 pr-3">{p.label}</td>
-                  <td className="text-data py-2 pr-3">{p.distanceM === null ? "–" : `${Math.round(p.distanceM)} m`}</td>
-                  <td className="text-data py-2 pr-3">{p.inside === false ? "outside" : p.inside ? "inside" : "–"}</td>
+                  <td className="text-data py-2 pr-3">{p.distanceM === null ? NA : `${Math.round(p.distanceM)} m`}</td>
+                  <td className="text-data py-2 pr-3">{p.inside === false ? "outside" : p.inside ? "inside" : NA}</td>
                   <td className="py-2 text-right"><Link href={`/assets/${p.id}`} className="text-[13px] text-accent-ink hover:underline">Open →</Link></td>
                 </tr>
               ))}

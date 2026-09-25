@@ -23,7 +23,8 @@ export default async function ReviewPage() {
       <PageHeader
         eyebrow="Quality control"
         title={<><b className="font-semibold">Review</b> queue</>}
-        meta={<><span>{waiting.length} flagged for review · {reviewed.length} reviewed</span></>}
+        lede={waiting.length === 0 ? "Nothing is waiting for a decision." : `${waiting.length} photo${waiting.length === 1 ? " is" : "s are"} waiting for a human decision. Lowest scores come first.`}
+        meta={`${waiting.length} flagged for review · ${reviewed.length} reviewed`}
         actions={<RecomputeButton />}
       />
       <p className="text-data mb-10 hidden items-center gap-2 text-fg-3 md:flex" aria-label="Keyboard shortcuts">

@@ -5,6 +5,8 @@ import CustodyFunnel from "@/components/CustodyFunnel"
 import ContactSheet from "@/components/ContactSheet"
 import TrustBadge from "@/components/TrustBadge"
 import { TileImage } from "@/components/EvidenceTile"
+import SampleSheet from "@/components/SampleSheet"
+import { SAMPLE_MIX } from "@/components/landing/story-data"
 import { PageHeader, Section } from "@/components/ui/layout"
 import { InlineNotice } from "@/components/ui/notice"
 import { Sheet } from "@/components/ui/sheet"
@@ -84,12 +86,18 @@ export default async function Dashboard() {
       <PageHeader
         eyebrow="Workspace"
         title={<><b className="font-semibold">Evidence</b> ledger</>}
+        lede={stats.total === 0
+          ? "Upload field photos and video. Each one is read, scored and sealed into a report anyone can verify."
+          : `${stats.verified} of ${stats.scored} scored photos are verified. ${stats.awaitingReview === 0 ? "None are" : stats.awaitingReview === 1 ? "1 is" : `${stats.awaitingReview} are`} flagged for review.`}
         meta={stats.total ? `${stats.total} files · ${projects.length} project${projects.length === 1 ? "" : "s"} · last upload ${formatTime(latest[0].created_at)} IST` : undefined}
-        actions={<Link href="/upload" className={buttonVariants({ size: "default" })}>Upload evidence</Link>}
+        actions={<Link href="/upload" className={buttonVariants({ size: "lg" })}>Upload evidence</Link>}
+        aside={stats.total === 0 ? (
+          <SampleSheet frames={SAMPLE_MIX} edgeTop={["Sample roll", "8 frames · illustrative"]} legend="Blue = not yet verified" ariaLabel="Illustrative contact sheet: six sample photos develop into colour once verified and two stay blue and are flagged for review." />
+        ) : undefined}
       />
 
       {stats.total === 0 ? (
-        <Section eyebrow="Get started" title="Nothing in the ledger yet.">
+        <Section eyebrow="Get started" title="How a photo becomes evidence">
           <ol className="grid list-none grid-cols-1 border-t border-line p-0 md:grid-cols-4">
             {PIPELINE.map(([n, t, d]) => (
               <li key={n} className="grid content-start gap-1.5 border-b border-line py-4 md:border-b-0 md:border-l md:px-5 md:first:border-l-0 md:first:pl-0">
@@ -99,7 +107,6 @@ export default async function Dashboard() {
               </li>
             ))}
           </ol>
-          <div><Link href="/upload" className={buttonVariants({ size: "lg" })}>Upload evidence</Link></div>
         </Section>
       ) : (
         <>
@@ -179,7 +186,7 @@ export default async function Dashboard() {
                 <div className="grid gap-2">
                   <p className="text-title">{c.ids.length} photos near <span className="font-mono">{c.lat.toFixed(4)}, {c.lng.toFixed(4)}</span></p>
                   <p className="text-data text-fg-3">
-                    {formatDay(new Date(c.start).toISOString())}{c.end - c.start > 0 && ` – ${formatDay(new Date(c.end).toISOString())}`} · radius ≈ {c.radiusM} m
+                    {formatDay(new Date(c.start).toISOString())}{c.end - c.start > 0 && ` to ${formatDay(new Date(c.end).toISOString())}`} · radius ≈ {c.radiusM} m
                   </p>
                 </div>
                 <div className="flex items-center gap-1">

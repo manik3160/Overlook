@@ -29,3 +29,7 @@ export const HERO_FRAMES: { kind: "before" | "after" | "people" | "water" | "scr
   { kind: "after", seed: 7, date: "11 SEP" }, { kind: "people", seed: 8, date: "19 AUG" }, { kind: "before", seed: 9, date: "12 AUG" }, { kind: "before", seed: 41, date: "3 SEP", flag: "Reused image" },
   { kind: "after", seed: 10, date: "11 SEP" }, { kind: "water", seed: 11, date: "9 SEP", flag: "1.8 km off-site" }, { kind: "after", seed: 12, date: "14 SEP" }, { kind: "people", seed: 13, date: "24 AUG" },
 ]
+
+// Ready-made selections of the same roll, so every page's sample sheet matches (used by empty states).
+export const SAMPLE_MIX = [0, 1, 2, 3, 4, 5, 7, 10].map((i) => HERO_FRAMES[i]) // two of them get flagged
+export const SAMPLE_CLEAR = [0, 1, 4, 5].map((i) => HERO_FRAMES[i]) // for "nothing flagged"

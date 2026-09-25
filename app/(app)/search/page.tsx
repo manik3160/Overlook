@@ -51,7 +51,7 @@ export default async function SearchPage(props: PageProps<"/search">) {
 
   return (
     <>
-      <PageHeader eyebrow="Discover" title={<><b className="font-semibold">Search</b> evidence</>} />
+      <PageHeader eyebrow="Discover" title={<><b className="font-semibold">Search</b> evidence</>} lede="Describe a scene in plain words, or filter by tag, trust band and date." />
 
       <form method="get" className="mb-8 grid gap-5">
         <label className="relative block">
@@ -63,7 +63,7 @@ export default async function SearchPage(props: PageProps<"/search">) {
         <div className="grid grid-cols-2 items-end gap-4 md:grid-cols-3 lg:grid-cols-7">
           <Field label="Project"><SelectWrap><select name="project" defaultValue={params.project} className={selectCls}><option value="">Any</option>{(projects ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></SelectWrap></Field>
           <Field label="Tag"><SelectWrap><select name="tag" defaultValue={params.tag} className={selectCls}><option value="">Any</option>{TAXONOMY.map((t) => <option key={t.name} value={t.name}>{t.name.replaceAll("_", " ")}</option>)}</select></SelectWrap></Field>
-          <Field label="Trust"><SelectWrap><select name="band" defaultValue={params.band} className={selectCls}><option value="">Any</option><option value="Verified">Verified (80+)</option><option value="Needs review">Needs review (50–79)</option><option value="Suspicious">Suspicious (under 50)</option></select></SelectWrap></Field>
+          <Field label="Trust"><SelectWrap><select name="band" defaultValue={params.band} className={selectCls}><option value="">Any</option><option value="Verified">Verified (80+)</option><option value="Needs review">Needs review (50 to 79)</option><option value="Suspicious">Suspicious (under 50)</option></select></SelectWrap></Field>
           <Field label="From"><input type="date" name="from" defaultValue={params.from} className={inputCls} /></Field>
           <Field label="To"><input type="date" name="to" defaultValue={params.to} className={inputCls} /></Field>
           <Field label="Type"><SelectWrap><select name="type" defaultValue={params.type} className={selectCls}><option value="">Images and videos</option><option value="image">Images</option><option value="video">Videos</option></select></SelectWrap></Field>

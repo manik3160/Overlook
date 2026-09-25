@@ -12,6 +12,7 @@ import { TileImage } from "@/components/EvidenceTile"
 import { Chip, Eyebrow, KeyValue, PageHeader, Panel } from "@/components/ui/layout"
 import { InlineNotice } from "@/components/ui/notice"
 import { supabase } from "@/lib/supabase"
+import { NA } from "@/lib/copy"
 import { formatTime } from "@/lib/dates"
 import { formatClock, playerUrl } from "@/lib/video"
 import { NO_METADATA_CAP, type TrustFlag } from "@/lib/trust"
@@ -28,7 +29,7 @@ type Asset = {
 
 const shortId = (id: string) => id.split("/").pop() ?? id
 const link = "text-accent-ink underline decoration-accent-ink/40 underline-offset-[3px] hover:decoration-accent-ink"
-const yn = (v: unknown) => (v === true ? "yes" : v === false ? "no" : "–")
+const yn = (v: unknown) => (v === true ? "yes" : v === false ? "no" : NA)
 
 export async function generateMetadata(props: PageProps<"/assets/[id]">): Promise<Metadata> {
   const { id } = await props.params
@@ -59,7 +60,9 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
       <PageHeader
         back={project ? { href: `/projects/${project.id}`, label: project.name } : { href: "/upload", label: "Uploads" }}
         eyebrow={`Evidence · ${kind}`}
+        size="md"
         title={<b className="break-all font-semibold">{shortId(asset.public_id)}</b>}
+        lede={asset.caption ?? undefined}
         meta={`${asset.public_id} · uploaded ${formatTime(asset.created_at)} IST`}
       />
 
@@ -74,7 +77,7 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
               <img src={preview} alt={asset.caption ?? shortId(asset.public_id)} className="max-h-[72vh] w-full bg-surface-2 object-contain object-left" />
             )}
             <div className="grid gap-3">
-              <Eyebrow rule={false}>Chain of custody</Eyebrow>
+              <Eyebrow mark={false}>Chain of custody</Eyebrow>
               <CustodyStrip takenAt={asset.taken_at} hasGps={asset.lat !== null && asset.lng !== null} status={asset.status} tagCount={asset.tags?.length ?? 0} signalCount={hasSignals ? 6 : 0} score={asset.trust_score} reviewStatus={asset.review_status} />
             </div>
           </div>
@@ -119,8 +122,8 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
             </div>
             {hasSignals ? (
               <KeyValue rows={[
-                ["People working", String(sig.people_working ?? "–")], ["Garbage", yn(sig.garbage_visible)], ["Vegetation", String(sig.vegetation ?? "–")],
-                ["Water", yn(sig.water_present)], ["Structure", String(sig.structure_stage ?? "–").replace("_", " ")], ["Safety gear", yn(sig.safety_gear)],
+                ["People working", String(sig.people_working ?? NA)], ["Garbage", yn(sig.garbage_visible)], ["Vegetation", String(sig.vegetation ?? NA)],
+                ["Water", yn(sig.water_present)], ["Structure", String(sig.structure_stage ?? NA).replace("_", " ")], ["Safety gear", yn(sig.safety_gear)],
               ]} />
             ) : <p className="text-small">Signals appear after analysis.</p>}
           </section>

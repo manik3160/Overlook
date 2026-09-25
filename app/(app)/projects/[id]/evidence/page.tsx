@@ -64,6 +64,7 @@ export default async function EvidencePage(props: PageProps<"/projects/[id]/evid
       <PageHeader
         back={{ href: `/projects/${id}`, label: project.name }}
         eyebrow={`Receipt · ${signalMetric ? `${signalMetric.label}${set !== "all" ? ` · ${set}` : ""}` : metric || "all photos"}`}
+        size="md"
         title={<b className="font-semibold">{headline}</b>}
         meta={sub}
       />

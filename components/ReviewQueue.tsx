@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, X } from "lucide-react"
 import FlagRow from "@/components/FlagRow"
+import SampleSheet from "@/components/SampleSheet"
+import { SAMPLE_CLEAR } from "@/components/landing/story-data"
 import TrustBadge from "@/components/TrustBadge"
 import { TileImage, type TileAsset } from "@/components/EvidenceTile"
 import { tileState } from "@/components/evidence-state"
@@ -104,7 +106,7 @@ export default function ReviewQueue({ initialWaiting, initialReviewed }: { initi
           </InlineNotice>
         )}
         {waiting.length === 0 ? (
-          <EmptyState icon={<Check size={20} strokeWidth={1.5} />} title="Nothing flagged for review">New flags appear here after upload and analysis.</EmptyState>
+          <EmptyState visual={<SampleSheet frames={SAMPLE_CLEAR} cols={4} mode="clear" edgeTop={["Sample roll", "illustrative"]} legend="All clear" ariaLabel="Illustrative contact sheet where every sample photo has developed into colour and none are flagged." />} title="Nothing flagged for review">New flags appear here after upload and analysis. A clear queue looks like this: every frame developed, none marked.</EmptyState>
         ) : (
           <ul className="grid list-none gap-3 p-0">
             {waiting.map((a, i) => (
@@ -133,7 +135,7 @@ export default function ReviewQueue({ initialWaiting, initialReviewed }: { initi
       </section>
 
       <details className="group" open={reviewed.length > 0 && reviewed.length <= 3}>
-        <summary className="flex cursor-pointer list-none items-center gap-3"><Eyebrow>02 · Reviewed ({reviewed.length})</Eyebrow><span className="text-fg-3 transition-transform group-open:rotate-90" aria-hidden="true">›</span></summary>
+        <summary className="flex cursor-pointer list-none items-center gap-3"><Eyebrow>{`02 · Reviewed (${reviewed.length})`}</Eyebrow><span className="text-fg-3 transition-transform group-open:rotate-90" aria-hidden="true">›</span></summary>
         <ul className="mt-5 grid list-none gap-2 p-0">
           {reviewed.length === 0 && <li className="text-small">Nothing reviewed yet.</li>}
           {reviewed.map((a) => (

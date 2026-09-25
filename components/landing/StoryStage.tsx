@@ -7,6 +7,7 @@ import { rng } from "@/components/landing/scenes"
 import { BA_ROWS, BITS_A, BITS_B, CASE, DIFF, REPORT_HASH } from "@/components/landing/story-data"
 import TrustBadge from "@/components/TrustBadge"
 import { cn } from "@/lib/utils"
+import { NA } from "@/lib/copy"
 
 const clamp = (x: number) => Math.max(0, Math.min(1, x))
 const on = (v: boolean) => (v ? "opacity-100" : "translate-y-[3px] opacity-0")
@@ -72,7 +73,7 @@ function PhotoScene({ ch, p }: { ch: number; p: number }) {
           <div className="flex flex-wrap items-end gap-3">
             <div className="grid gap-1"><span className="text-micro text-fg-3">This photo</span><BitGrid bits={BITS_A} rows={rows} diff /></div>
             <div className="grid gap-1"><span className="text-micro text-fg-3">img_0412 · 4 Aug</span><BitGrid bits={BITS_B} rows={rows} diff /></div>
-            <div className="grid"><span className="text-micro text-fg-3">Distance</span><span className="font-mono text-[28px] font-light leading-8" style={{ color: p > 0.34 ? "var(--suspicious)" : undefined }}>{p > 0.34 ? CASE.hamming : "—"}</span></div>
+            <div className="grid"><span className="text-micro text-fg-3">Distance</span><span className="font-mono text-[28px] font-light leading-8" style={{ color: p > 0.34 ? "var(--suspicious)" : undefined }}>{p > 0.34 ? CASE.hamming : NA}</span></div>
           </div>
           <svg viewBox="0 0 220 120" className="block h-auto w-full max-w-[220px]" aria-hidden="true">
             <rect x="0" y="0" width="220" height="120" fill="none" stroke="var(--line)" />
@@ -94,7 +95,7 @@ function PhotoScene({ ch, p }: { ch: number; p: number }) {
           <span className={cn("absolute inset-y-0 left-0 transition-[width,background-color] duration-300", fill)} style={{ width: `${score ?? 0}%` }} />
           {[50, 80].map((tk) => <span key={tk} className="absolute -top-0.5 h-2.5 w-px bg-line-strong" style={{ left: `${tk}%` }} />)}
         </span>
-        <span className="min-w-[2.2ch] text-right font-mono text-[28px] font-light leading-[30px] tabular-nums">{score ?? "—"}</span>
+        <span className="min-w-[2.2ch] text-right font-mono text-[28px] font-light leading-[30px] tabular-nums">{score ?? NA}</span>
         <TrustBadge score={score} />
       </div>
     </div>

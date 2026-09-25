@@ -2,24 +2,32 @@ import Link from "next/link"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-// `── 01 · SCORECARD` numbered eyebrow (DESIGN.md 4.2). The number is fixed per page.
-export function Eyebrow({ children, rule = true, className }: { children: ReactNode; rule?: boolean; className?: string }) {
-  return <p className={cn("text-eyebrow", rule && "eyebrow-rule", className)}>{children}</p>
+// Section label on a blue highlighter mark (DESIGN.md 4.2). A leading "NN · " becomes a bold number inside the mark.
+// `mark={false}` gives the plain grey label used for table headers and field labels.
+export function Eyebrow({ children, mark = true, className }: { children: ReactNode; mark?: boolean; className?: string }) {
+  const m = typeof children === "string" ? children.match(/^(\d{2}) · ([\s\S]+)$/) : null
+  const body = m ? <><b className="mr-2 font-bold">{m[1]}</b>{m[2]}</> : children
+  return <p className={cn("text-eyebrow", className)}>{mark ? <span className="eyebrow-mark">{body}</span> : body}</p>
 }
 
-// Page header pattern (DESIGN.md 6.2): breadcrumb, eyebrow, weight-contrast title, meta line, actions.
-export function PageHeader({ eyebrow, title, meta, actions, back }: {
-  eyebrow?: ReactNode; title: ReactNode; meta?: ReactNode; actions?: ReactNode; back?: { href: string; label: string }
+// Page header, landing style (DESIGN.md 6.2): big light title with a bold key noun, a live one-line lede,
+// optional aside (a sample sheet on empty states) and actions. `size="md"` for user-entered names.
+export function PageHeader({ eyebrow, title, lede, meta, actions, aside, back, size = "hero" }: {
+  eyebrow?: ReactNode; title: ReactNode; lede?: ReactNode; meta?: ReactNode; actions?: ReactNode; aside?: ReactNode
+  back?: { href: string; label: string }; size?: "hero" | "md"
 }) {
+  const acts = actions && <div className="flex flex-wrap gap-2">{actions}</div>
   return (
-    <header className="mb-12 flex flex-wrap items-end justify-between gap-6 border-b border-line pb-7">
-      <div className="grid min-w-0 gap-2.5">
+    <header className="mb-14 grid gap-8 border-b border-line pb-8 lg:grid-cols-12 lg:items-center">
+      <div className={cn("grid min-w-0 content-start gap-4", aside ? "lg:col-span-6" : "lg:col-span-9")}>
         {back && <Link href={back.href} className="text-[13px] text-fg-2 hover:text-fg">← {back.label}</Link>}
         {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-        <h1 className="text-h1 break-words">{title}</h1>
+        <h1 className={cn(size === "hero" ? "text-hero" : "text-hero-md", "break-words")}>{title}</h1>
+        {lede && <p className="max-w-[50ch] text-lg leading-7 text-fg-2">{lede}</p>}
         {meta && <p className="text-data text-fg-3">{meta}</p>}
+        {aside && acts && <div className="pt-2">{acts}</div>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {aside ? <div className="lg:col-span-6">{aside}</div> : acts && <div className="lg:col-span-3 lg:flex lg:justify-end">{acts}</div>}
     </header>
   )
 }
@@ -30,8 +38,8 @@ export function Section({ id, eyebrow, title, action, children, className }: {
   const hid = id ? `${id}-h` : undefined
   return (
     <section id={id} aria-labelledby={hid} className={cn("mb-16 grid scroll-mt-32 gap-5", className)}>
-      <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <div className="grid gap-2">
+      <div className="reveal flex flex-wrap items-baseline justify-between gap-4">
+        <div className="grid gap-2.5">
           <Eyebrow>{eyebrow}</Eyebrow>
           <h2 id={hid} className="text-h2">{title}</h2>
         </div>

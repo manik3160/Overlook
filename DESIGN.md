@@ -1,4 +1,4 @@
-# DESIGN.md — Overlook frontend specification
+# DESIGN.md: Overlook frontend specification
 
 > **Live preview:** https://claude.ai/artifact/WC66ShRfYt8R7BaWpyRQTK. It opens on the landing page; scroll it, then
 > press "Open the ledger" for the app (dashboard, project, photo, review, verify). All preview data is sample data.
@@ -39,7 +39,7 @@ features that already exist; it adds no product behaviour.
 
 ---
 
-## 1. Design concept — "Chain of Custody"
+## 1. Design concept: "Chain of Custody"
 
 Overlook is not a gallery. It is an **evidence ledger**. The interface should feel like the working desk of an auditor
 or an investigative photo desk: calm, precise, and dense where density helps. Nothing in it is decorative.
@@ -62,7 +62,7 @@ Three ideas drive every decision:
    like a photo editor marking a print. Blue therefore always means "not proven yet", from the landing page to the
    dashboard bars to the verify page.
 
-Visual language: hairline rules (1px), mono uppercase eyebrows with numbered sections (`01 — SCORECARD`), and tabular
+Visual language: hairline rules (1px), mono uppercase eyebrows with numbered sections (`01 SCORECARD`, each on a blue highlighter mark), and tabular
 figures. Photos have square corners, because photos are evidence and not decoration. The layout sits on a strict
 grid and is generous with whitespace between sections. It is dense inside tables and ledgers.
 
@@ -100,12 +100,12 @@ We studied these products. We borrow principles from them, not their look.
 |---|---|---|
 | **Code Cubicle 6.0 PS-02 brief** (the judges' document) | Mono, letter-spaced, numbered eyebrows (`PROBLEM STATEMENT 02`); weight-contrast headline (bold word + light words); hairline dividers; dark ground. Judges will feel at home. | The teal accent (it collides with our green "Verified") and the radial glow. |
 | **Linear** | Keyboard-first triage (j/k, shortcuts), dense lists, a quiet chrome that lets the content lead. | The purple brand and gradients. |
-| **Vercel dashboard** | Status dots and state-driven rows (Queued, Building, Ready maps to Pending, Analyzing, Done); monochrome UI with semantic colour only. | — |
+| **Vercel dashboard** | Status dots and state-driven rows (Queued, Building, Ready maps to Pending, Analyzing, Done); monochrome UI with semantic colour only. |, |
 | **Stripe Dashboard / Mercury** | Tabular numbers; every figure drills down; money-grade seriousness. | Illustration style. |
 | **Forensic Architecture / Bellingcat investigations** | An evidence-first presentation: annotated media, coordinates and timestamps shown as first-class data, chains of custody. | Their editorial darkness and density on public pages. |
-| **Our World in Data** | Honest charts: the numerator and denominator are always visible ("18/20"), and a source link sits under every figure. | — |
+| **Our World in Data** | Honest charts: the numerator and denominator are always visible ("18/20"), and a source link sits under every figure. |, |
 | **Apple Photos (Places) / Felt** | A calm, desaturated base map so the pins carry the colour. | Colourful base tiles. |
-| **Swiss / International Typographic Style** | A strict grid, left-aligned text, hierarchy through size and weight, not boxes. | — |
+| **Swiss / International Typographic Style** | A strict grid, left-aligned text, hierarchy through size and weight, not boxes. | Nothing to leave. |
 
 ---
 
@@ -204,8 +204,13 @@ with the `wdth` axis.
 - Project: `<span class="font-semibold">{project.name}</span>`. User-entered names are fully 600; do not split them.
 - Verify: `Report <span class="font-semibold">unchanged</span>` / `Report <span class="font-semibold">altered</span>`
 
-**Eyebrow pattern:** a 24px × 1px rule in `--fg-3`, a 12px gap, then the mono uppercase text, for example
-`── 01 · SCORECARD`. Section numbers are fixed per page (§8), so the numbering reads like a document.
+**Eyebrow pattern (blue highlighter mark).** A section label is mono uppercase text on a solid `--accent-ink` "marker
+stroke" with `--bg` text (`padding: 2px 8px`, `box-decoration-break: clone` so a wrapped label keeps the mark on every
+line, square corners). A leading number is bold and sits inside the mark with spacing, not punctuation: `01  SCORECARD`.
+This replaces the old 24px rule, which read as a row of em dashes. Tokens do the inversion: in the Paper theme it is
+`#2F4FC4` on off-white, and inside the cyanotype chapter (`--accent-ink` remapped to `#D2DCFB`) it turns pale blue on
+Prussian blue. Only section starts and page eyebrows are marked. Table headers and field labels stay plain grey
+(`<Eyebrow mark={false}>`). In the ASCII sketches below, a line starting with `── LABEL` means a highlighted eyebrow.
 
 Max line length for body text is 68ch.
 
@@ -427,6 +432,14 @@ cleanup · 3 Aug → 14 Sep 2026 · 500 m geofence · 28.5412, 77.3013    text-d
 
 The breadcrumb, when present, sits above the eyebrow: `← Overview` in `text-small --fg-2`, with hover `--fg`.
 
+**Landing-style header (as built).** Every app page header follows the landing hero: the eyebrow on a highlighter
+mark, a big light title (`text-hero`, `clamp(36px, 4.8vw, 64px)`, weight 300, the key noun at 600), then a one-line
+**lede** (18px, `--fg-2`, 50ch) that is a live sentence built from data the page already loads, then the mono meta
+line. Pages whose title is a user-entered name or a long sentence (project, photo, receipt) use `size="md"`
+(`text-hero-md`, up to 44px). On empty states the header takes an `aside` (a sample contact sheet, see 8.1) and the
+actions move under the lede. Section headings rise in gently on scroll (`.reveal`, CSS scroll-driven animation, headings
+only, never content).
+
 ### 6.3 Section pattern
 
 Every major block is a `<section aria-labelledby>` with a numbered eyebrow and a `text-h2`. On desktop, sections are
@@ -449,9 +462,9 @@ active, disabled, and loading where relevant.
 | `default` (primary) | `--fg` bg, `--bg` text | bg mixes 88% `--fg` | `translateY(1px)` | 40% opacity, no pointer | One per view: "Analyze 12 pending", "Generate donor PDF" |
 | `outline` (secondary) | transparent, 1px `--line-strong`, `--fg` text | `--surface-2` bg | `--surface-3` | 40% | Most actions |
 | `ghost` | transparent, `--fg-2` | `--surface-2`, `--fg` | `--surface-3` | 40% | Toolbars, "Undo" |
-| `approve` | 1px `--verified`, `--verified` text | `--verified-tint` bg | — | 40% | Review: Approve |
-| `reject` | 1px `--suspicious`, `--suspicious` text | `--suspicious-tint` bg | — | 40% | Review: Reject |
-| `link` | `--accent` text, 1px underline at 3px offset in `--accent`/40% | underline at 100% | — | — | Provenance links |
+| `approve` | 1px `--verified`, `--verified` text | `--verified-tint` bg | none | 40% | Review: Approve |
+| `reject` | 1px `--suspicious`, `--suspicious` text | `--suspicious-tint` bg | none | 40% | Review: Reject |
+| `link` | `--accent` text, 1px underline at 3px offset in `--accent`/40% | underline at 100% | none | none | Provenance links |
 
 Sizes: `sm` 28px (12px text), `default` 32px (14px), `lg` 40px (14px, 16px x-padding; the primary CTA on empty states).
 **Loading:** a 14px spinner (a 1.5px ring rotating in 700ms linear, allowed under reduced motion as a static ring)
@@ -594,7 +607,7 @@ View 31 photos →              link --accent (the receipt)
 
 - The whole block is a link when a destination exists. Hover moves the arrow `translateX(2px)` and underlines the receipt link.
 - **Denominators are always shown when they exist** (OWID principle): "31 / 40", not "31".
-- Empty value: an em dash `—` in `--fg-3` with the helper line explaining why ("appears after analysis").
+- Empty value: the text `n/a` (the `NA` constant in `lib/copy.ts`) in `--fg-3`, with a helper line explaining why ("appears after analysis").
 
 ### 7.9 ScorecardTable (`components/Scorecard.tsx`, redesigned)
 
@@ -638,7 +651,7 @@ View 31 photos →              link --accent (the receipt)
 - Corner labels: `BEFORE · 12 AUG 2026` top-left and `AFTER · 19 SEP 2026` top-right, as `text-micro` scrim chips.
 - Intro hint (the signature moment on the project page, §9.3): on the first time it enters the viewport, the divider
   eases 50 → 35 → 50 over 900ms. This happens once per page view and is skipped under reduced motion.
-- Below the slider is the **PairMeta** line: `7 days apart · 12 m apart · pHash — ` in `text-data --fg-3`, then the
+- Below the slider is the **PairMeta** line: `7 days apart · 12 m apart · pHash n/a` in `text-data --fg-3`, then the
   change summary in `text-body` (max 68ch). If there is no summary yet, show "Summary not written yet." in `--fg-3` italic.
 - Touch: `touch-action: pan-y` on the frame, so vertical scrolling still works on phones.
 
@@ -956,7 +969,7 @@ TRUST DISTRIBUTION  ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
 - **02 Flagged for review:** up to 3 of the lowest-scoring unreviewed flagged assets (§14.3 query addition). Each is a
   compact card with a 72px thumbnail, the badge, and the first flag's human title. It is hidden when there are none.
 - **03 Projects:** a ledger table instead of a bullet list. Rows are 52px and the entire row is a link. AVG TRUST is
-  computed from the already-fetched assets per project; show a TrustBadge with the score, or `—`.
+  computed from the already-fetched assets per project; show a TrustBadge with the score, or `n/a`.
   The existing count is kept. "New project" opens a Sheet with `ProjectForm mode="create"`.
 - **04 Suggested projects:** one panel per cluster.
   - Thumbnails: the first 5, 48px each (§14.3 adds `secure_url` to the select), plus a `+N` chip.
@@ -1039,7 +1052,7 @@ Overview  Timeline  Before/after  Evidence  Reports  Campaign        ← Section
  A report is a snapshot sealed with SHA-256 … (existing explainer, text-small --fg-3)
 
 ── 06 · CAMPAIGN & STORY
-[Card previews ×3: Instagram 1:1, Story 9:16, Hindi 9:16 — each with label + Download]
+[Card previews ×3: Instagram 1:1, Story 9:16, Hindi 9:16, each with label + Download]
 [Generate impact story]  Open public story page ↗
 Uses only verified photos (trust 80+ or approved). Faces are pixelated.
 ```
@@ -1162,7 +1175,7 @@ Review queue                                   [Recompute all trust scores] ← 
 ```
 ── DISCOVER
 Search evidence
-[⌕  Describe what you're looking for — e.g. "garbage near the road"          Search ↵]
+[⌕  Describe what you're looking for, e.g. "garbage near the road"          Search ↵]
 PROJECT [Any ▾]  TAG [Any ▾]  TRUST [Any ▾]  FROM [date]  TO [date]  TYPE [Images and videos ▾]   Clear
 ───────────────────────────────────────────────────────────────────────────────
 12 results · best match first          (or "· newest first" in filter mode)
@@ -1343,6 +1356,10 @@ Everything else is quiet: hover colour shifts, the 200ms progress-bar width, and
    | Hindi | Only on the campaign card (a Cloudinary overlay), so there are no Devanagari UI strings to budget |
 
 ---
+
+**Dashes.** Do not use em dashes or en dashes in UI copy, in AI prompts' output, or in these docs. Use a colon, comma,
+period or parentheses. "No value" is the text `n/a` (`NA` in `lib/copy.ts`), and a range is written with the word "to"
+or an arrow. The story prompt in `lib/gemini.ts` tells the model the same.
 
 ## 11. Responsive behaviour
 
@@ -1618,3 +1635,13 @@ themes). Where the build differs from the text above, **the build reflects a dec
 | Search data | Not listed in 14.3 | Added `status, trust_flags, lat, lng` to the select in `lib/search.ts` | Tiles need them to draw the develop state and MetaLine. Select-list change only. |
 
 Deliberately not done: `next build` was not run (a dev server was already using `.next`), and there was no real-phone check.
+
+**Second pass (page headers, empty states, dash cleanup).**
+
+| Area | Change |
+|---|---|
+| Section labels | The 24px rule (read as em dashes) is replaced by the blue highlighter mark (4.2). One shared `Eyebrow` component, so the landing page and every app page change together. |
+| Page headers | Landing-style hero title, live lede, optional aside (6.2). Applied to dashboard, upload, review, search, project, photo and receipt pages. |
+| Empty states | `SampleSheet` (extracted from the landing hero) shows an illustrative roll that develops from blue to colour: dashboard hero, upload grid, review ("all clear" mode). `EmptyState` gained a `visual` slot. Search, project and report empty states keep the plain restyled panel. |
+| Dashes | Every em and en dash removed from `app`, `components`, `lib` and this file. Empty values read `n/a`. `lib/trust.ts` LOW_CONFIDENCE reason now reads "...; needs a human look" (CLAUDE.md 7.2 quotes the old wording). |
+| Motion | `.reveal` on `Section` headings, CSS only, `@supports (animation-timeline: view())`, off under reduced motion. |

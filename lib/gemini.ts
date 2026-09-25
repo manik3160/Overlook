@@ -104,7 +104,7 @@ const narrativeSchema = z.object({ problem: z.string().trim().min(10).max(500), 
 // Short impact story written ONLY from the supplied (verified) facts. Text-only call.
 export async function writeStory(facts: StoryFacts): Promise<Narrative> {
   const prompt = `Write a short impact story for donors about a community field project, in three parts.
-Use ONLY the facts in the JSON below. Do not invent numbers, names, places, quantities or outcomes that are not in the facts. If a fact is missing, leave it out.
+Do not use em dashes or en dashes; use commas or full stops instead. Use ONLY the facts in the JSON below. Do not invent numbers, names, places, quantities or outcomes that are not in the facts. If a fact is missing, leave it out.
 Return ONLY JSON: {"problem": 1-2 sentences on the situation, "action": 1-2 sentences on what was done, "result": 1-2 sentences on the outcome using the given numbers}.
 Each percentage in the facts is the share of PHOTOS (before-set or after-set) that show that condition, not a share of time or activity: describe it as "photos showing ..." or "in X% of the after photos". Plain, factual, warm tone. No exaggeration.
 

@@ -19,13 +19,16 @@ export function InlineNotice({ tone = "neutral", children, action, className }: 
   )
 }
 
-export function EmptyState({ icon, title, children, action }: { icon?: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
+export function EmptyState({ icon, visual, title, children, action }: { icon?: ReactNode; visual?: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="grid justify-items-start gap-2 rounded-md border border-dashed border-line-strong px-5 py-6">
-      {icon && <div className="text-fg-3">{icon}</div>}
-      <p className="text-title">{title}</p>
-      {children && <p className="text-small max-w-[68ch]">{children}</p>}
-      {action && <div className="pt-1">{action}</div>}
+    <div className={cn("grid items-center gap-x-10 gap-y-5 rounded-md border border-dashed border-line-strong px-6 py-7", visual && "lg:grid-cols-[minmax(0,420px)_1fr]")}>
+      {visual}
+      <div className="grid justify-items-start gap-2">
+        {icon && <div className="text-fg-3">{icon}</div>}
+        <p className="text-h2">{title}</p>
+        {children && <p className="text-small max-w-[56ch] text-[15px] leading-6">{children}</p>}
+        {action && <div className="pt-2">{action}</div>}
+      </div>
     </div>
   )
 }

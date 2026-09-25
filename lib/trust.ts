@@ -155,7 +155,7 @@ export function computeTrust(input: TrustInput): TrustResult {
     flags.push({ code: "NO_METADATA", severity: "info", reason: "No location or time metadata: this photo can't be verified on its own (that is not a sign of tampering).", evidence: { cap: NO_METADATA_CAP } })
   }
   if (lowConfidence) {
-    flags.push({ code: "LOW_CONFIDENCE", severity: "info", reason: "couldn't confidently classify this image — needs a human look", evidence: {} })
+    flags.push({ code: "LOW_CONFIDENCE", severity: "info", reason: "couldn't confidently classify this image; needs a human look", evidence: {} })
   }
 
   let score = 100 - deduction

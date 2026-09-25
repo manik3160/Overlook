@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
+import { NA } from "@/lib/copy"
 
 // A "receipt number": a big figure that shows its denominator and links to the photos behind it (DESIGN.md 7.8).
 export default function StatFigure({ eyebrow, value, of, note, href, receipt, small = false, className }: {
@@ -10,7 +11,7 @@ export default function StatFigure({ eyebrow, value, of, note, href, receipt, sm
     <>
       <span className="text-eyebrow">{eyebrow}</span>
       <span className={cn("text-data-xl", small && "!text-[30px] !leading-8")}>
-        {value ?? <span className="text-fg-3">—</span>}
+        {value ?? <span className="text-[0.55em] text-fg-3">{NA}</span>}
         {of !== undefined && <small className="ml-1 text-[0.5em] text-fg-3">/ {of}</small>}
       </span>
       {note && <span className="text-small">{note}</span>}
