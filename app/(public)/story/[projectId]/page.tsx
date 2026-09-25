@@ -44,7 +44,7 @@ export default async function StoryPage(props: PageProps<"/story/[projectId]">) 
     <article className="grid gap-16">
       {!intact && <InlineNotice tone="error">Story data integrity check failed. Do not rely on this page.</InlineNotice>}
       <header className="grid gap-4">
-        <Eyebrow>{m.project.activity_type?.replace(/_/g, " ") ?? "Field project"}{m.project.start_date ? ` · ${m.project.start_date} to ${m.project.end_date ?? "ongoing"}` : ""}</Eyebrow>
+        <Eyebrow mark>{m.project.activity_type?.replace(/_/g, " ") ?? "Field project"}{m.project.start_date ? ` · ${m.project.start_date} to ${m.project.end_date ?? "ongoing"}` : ""}</Eyebrow>
         <p className="text-h1 !font-semibold">{m.project.name}</p>
         <h1 className="text-display max-md:!text-[34px] max-md:!leading-[38px]"><Headline text={m.headline.en} /></h1>
       </header>

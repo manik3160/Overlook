@@ -2,11 +2,12 @@ import Link from "next/link"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-// Section label on a blue highlighter mark (DESIGN.md 4.2). A leading "NN · " becomes a bold number inside the mark.
-// `mark={false}` gives the plain grey label used for table headers and field labels.
-export function Eyebrow({ children, mark = true, className }: { children: ReactNode; mark?: boolean; className?: string }) {
+// Small mono caps label. Plain grey by default. `mark` puts it on the blue highlighter (DESIGN.md 4.2): use it once
+// per page (the page label) and on the landing page. A leading "NN · " is dropped unless `numbered`, which is only for
+// steps that really are a sequence (the upload flow, the landing story).
+export function Eyebrow({ children, mark = false, numbered = false, className }: { children: ReactNode; mark?: boolean; numbered?: boolean; className?: string }) {
   const m = typeof children === "string" ? children.match(/^(\d{2}) · ([\s\S]+)$/) : null
-  const body = m ? <><b className="mr-2 font-bold">{m[1]}</b>{m[2]}</> : children
+  const body = m ? (numbered ? <><b className="mr-2 font-bold">{m[1]}</b>{m[2]}</> : m[2]) : children
   return <p className={cn("text-eyebrow", className)}>{mark ? <span className="eyebrow-mark">{body}</span> : body}</p>
 }
 
@@ -21,7 +22,7 @@ export function PageHeader({ eyebrow, title, lede, meta, actions, aside, back, s
     <header className="mb-14 grid gap-8 border-b border-line pb-8 lg:grid-cols-12 lg:items-center">
       <div className={cn("grid min-w-0 content-start gap-4", aside ? "lg:col-span-6" : "lg:col-span-9")}>
         {back && <Link href={back.href} className="text-[13px] text-fg-2 hover:text-fg">← {back.label}</Link>}
-        {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+        {eyebrow && <Eyebrow mark>{eyebrow}</Eyebrow>}
         <h1 className={cn(size === "hero" ? "text-hero" : "text-hero-md", "break-words")}>{title}</h1>
         {lede && <p className="max-w-[50ch] text-lg leading-7 text-fg-2">{lede}</p>}
         {meta && <p className="text-data text-fg-3">{meta}</p>}

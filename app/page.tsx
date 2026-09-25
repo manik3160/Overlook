@@ -66,7 +66,7 @@ export default async function Landing() {
         <div className="mx-auto max-w-[1280px] px-4 md:px-6 xl:px-8">
           <section aria-labelledby="hero-h" className="grid items-center gap-6 py-10 lg:grid-cols-12 lg:py-16">
             <div className="grid gap-[26px] lg:col-span-6">
-              <Eyebrow>Evidence platform for field projects</Eyebrow>
+              <Eyebrow mark>Evidence platform for field projects</Eyebrow>
               <h1 id="hero-h" className="font-heading text-[clamp(42px,6.4vw,88px)] font-light leading-[0.96] tracking-[-0.04em] text-balance [&_b]:font-[650]">
                 Every field photo is a <b>claim.</b><br />Overlook <b className="text-accent-ink">checks</b> it.
               </h1>
@@ -93,14 +93,14 @@ export default async function Landing() {
 
         <div className="mx-auto max-w-[1280px] px-4 md:px-6 xl:px-8">
           <section id="brief" aria-labelledby="brief-h" className="grid scroll-mt-20 gap-7 pb-[72px] pt-24">
-            <div className="grid gap-2.5"><Eyebrow>Problem statement 02 · Cloudinary</Eyebrow><h2 id="brief-h" className="text-h1">Everything the brief asks for, <b className="font-semibold">working</b>.</h2></div>
+            <div className="grid gap-2.5"><Eyebrow mark>Problem statement 02 · Cloudinary</Eyebrow><h2 id="brief-h" className="text-h1">Everything the brief asks for, <b className="font-semibold">working</b>.</h2></div>
             <BriefLedger project={projectHref} report={reportHref} />
           </section>
         </div>
 
         <section aria-labelledby="cta-h" className="bg-cy py-[88px] text-cy-fg">
           <div className="mx-auto grid max-w-[1280px] gap-6 px-4 md:px-6 xl:px-8">
-            <Eyebrow className="[--mark-bg:#D2DCFB] [--mark-fg:var(--cy)]">Sample workspace · no sign-in</Eyebrow>
+            <Eyebrow mark className="[--mark-bg:#D2DCFB] [--mark-fg:var(--cy)]">Sample workspace · no sign-in</Eyebrow>
             <h2 id="cta-h" className="font-heading text-[clamp(40px,6vw,76px)] font-light leading-none tracking-[-0.04em] [&_b]:font-[650]">Open the <b>ledger.</b></h2>
             <p className="max-w-[52ch] text-[17px] leading-[27px] text-cy-fg2">{line}</p>
             <div className="flex flex-wrap gap-2">

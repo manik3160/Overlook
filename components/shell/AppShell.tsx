@@ -25,7 +25,7 @@ export default async function AppShell() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-bg">
       <div className="mx-auto flex h-14 max-w-[1280px] items-center gap-7 px-4 md:px-6 xl:px-8">
-        <Wordmark />
+        <Wordmark href="/" />
         <div className="hidden h-full md:block"><NavLinks reviewCount={review} /></div>
         <span className="flex-1" />
         <SearchBox className="hidden w-[260px] lg:block" />

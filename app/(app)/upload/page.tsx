@@ -32,11 +32,11 @@ export default async function UploadPage() {
 
       <div className="mb-16 grid gap-10 lg:grid-cols-12">
         <section aria-labelledby="up-h" className="grid content-start gap-5 lg:col-span-7">
-          <div className="grid gap-2"><Eyebrow>01 · Upload</Eyebrow><h2 id="up-h" className="text-h2">Add field evidence</h2></div>
+          <div className="grid gap-2"><Eyebrow numbered>01 · Upload</Eyebrow><h2 id="up-h" className="text-h2">Add field evidence</h2></div>
           <Uploader />
         </section>
         <section aria-labelledby="an-h" className="lg:col-span-5 lg:border-l lg:border-line lg:pl-10">
-          <div className="mb-5 grid gap-2"><Eyebrow>02 · Analysis</Eyebrow><h2 id="an-h" className="text-h2">Read what is in each photo</h2></div>
+          <div className="mb-5 grid gap-2"><Eyebrow numbered>02 · Analysis</Eyebrow><h2 id="an-h" className="text-h2">Read what is in each photo</h2></div>
           <AnalysisPanel initial={counts} />
         </section>
       </div>

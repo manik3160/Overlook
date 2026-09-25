@@ -49,14 +49,14 @@ export default function StoryScroller() {
     <section id="how" className={cn("story-section scroll-mt-16", view.ch === 4 && view.p > 0.08 && "is-cyan")} aria-labelledby="story-h">
       <div className="mx-auto max-w-[1280px] px-4 md:px-6 xl:px-8">
         <div className="grid gap-3 pb-2 pt-[72px]">
-          <Eyebrow>How a photo becomes evidence</Eyebrow>
+          <Eyebrow mark>How a photo becomes evidence</Eyebrow>
           <h2 id="story-h" className="text-h1 max-w-[22ch]">Follow one photo. It looks fine. <b className="font-semibold">It isn&apos;t.</b></h2>
         </div>
         <div className="flex flex-col gap-6 min-[900px]:grid min-[900px]:grid-cols-12">
           <div className="min-[900px]:col-span-5">
             {STEPS.map((s, i) => (
               <article key={s.n} ref={(el) => { refs.current[i] = el }} data-step={i} className={cn("flex min-h-[78vh] flex-col justify-center gap-4 py-8 transition-opacity duration-[350ms] min-[900px]:min-h-[92vh] min-[900px]:py-12", view.ch === i ? "opacity-100" : "min-[900px]:opacity-[0.28]")}>
-                <Eyebrow>{`${s.n} · ${LABELS[i]}`}</Eyebrow>
+                <Eyebrow mark numbered>{`${s.n} · ${LABELS[i]}`}</Eyebrow>
                 <h3 className="font-heading text-[clamp(30px,3.4vw,44px)] font-light leading-[1.05] tracking-[-0.03em] text-balance [&_b]:font-semibold">{s.title}</h3>
                 <p className="max-w-[44ch] text-[17px] leading-[27px] text-fg-2 max-[899px]:text-base">{s.body}</p>
                 <ul className="m-0 grid max-w-[44ch] list-none border-t border-line p-0">

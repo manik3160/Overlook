@@ -77,7 +77,7 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
               <img src={preview} alt={asset.caption ?? shortId(asset.public_id)} className="max-h-[72vh] w-full bg-surface-2 object-contain object-left" />
             )}
             <div className="grid gap-3">
-              <Eyebrow mark={false}>Chain of custody</Eyebrow>
+              <Eyebrow>Chain of custody</Eyebrow>
               <CustodyStrip takenAt={asset.taken_at} hasGps={asset.lat !== null && asset.lng !== null} status={asset.status} tagCount={asset.tags?.length ?? 0} signalCount={hasSignals ? 6 : 0} score={asset.trust_score} reviewStatus={asset.review_status} />
             </div>
           </div>

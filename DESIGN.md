@@ -204,13 +204,21 @@ with the `wdth` axis.
 - Project: `<span class="font-semibold">{project.name}</span>`. User-entered names are fully 600; do not split them.
 - Verify: `Report <span class="font-semibold">unchanged</span>` / `Report <span class="font-semibold">altered</span>`
 
-**Eyebrow pattern (blue highlighter mark).** A section label is mono uppercase text on a solid `--accent-ink` "marker
-stroke" with `--bg` text (`padding: 2px 8px`, `box-decoration-break: clone` so a wrapped label keeps the mark on every
-line, square corners). A leading number is bold and sits inside the mark with spacing, not punctuation: `01  SCORECARD`.
-This replaces the old 24px rule, which read as a row of em dashes. Tokens do the inversion: in the Paper theme it is
-`#2F4FC4` on off-white, and inside the cyanotype chapter (`--accent-ink` remapped to `#D2DCFB`) it turns pale blue on
-Prussian blue. Only section starts and page eyebrows are marked. Table headers and field labels stay plain grey
-(`<Eyebrow mark={false}>`). In the ASCII sketches below, a line starting with `── LABEL` means a highlighted eyebrow.
+**Eyebrow pattern.** A small mono caps label, plain grey (`--fg-3`) by default. The **blue highlighter mark**
+(`--accent-ink` fill, `--bg` text, `padding: 2px 8px`, `box-decoration-break: clone`, square corners) is a signal, so it
+is rationed:
+
+- **Once per app page:** the page label in the header (`WORKSPACE`, `PROJECT · CLEANUP`, `QUALITY CONTROL`). It means "you are here".
+- **The landing page and the public story page's opening label.** Nowhere else.
+- Section labels (`CHAIN OF CUSTODY`, `FLAGGED FOR REVIEW`) are plain grey. Six marks in a column, as first built on the
+  dashboard, competed with each other and with the real content.
+
+**Numbers only when the order is real.** A leading `NN · ` is dropped automatically unless the label is passed
+`numbered`. Only true sequences keep it: the upload flow (`01 Upload`, `02 Analysis`) and the landing story
+(`01` to `05`). Dashboard, project, photo and verify sections are not steps, so they carry no numbers.
+In the marked case a kept number is bold inside the mark. Tokens do the inversion: Paper theme is `#2F4FC4` on off-white,
+and inside the cyanotype chapter (`--accent-ink` remapped to `#D2DCFB`) it is pale blue on Prussian blue.
+In the ASCII sketches in this file a line starting `── LABEL` is a section label and its number is illustrative only.
 
 Max line length for body text is 68ch.
 
@@ -397,7 +405,7 @@ Rules:
 
 - Height is 56px. It is sticky at `top:0` with `--bg` at 92% opacity (no blur) and a 1px `--line` bottom border.
 - **Wordmark:** a 14px square mark (1.5px `--fg` stroke with a 4px filled inner square, drawn in inline SVG; it reads
-  as a "sealed" frame) followed by "Overlook" in Display 16/650, tracking −0.01em. It links to `/dashboard`.
+  as a "sealed" frame) followed by "Overlook" in Display 16/650, tracking −0.01em. It links to the landing page (`/`); "Overview" in the nav is the way to the dashboard.
 - **Nav items:** Sans 14/500 in `--fg-2`, with 12px horizontal padding. The active item is `--fg` with a 2px `--fg`
   underline flush to the bar's bottom border. Hover changes the colour to `--fg` in 120ms. Active state uses
   `usePathname()`. **Overview** points at `/dashboard`, and `/projects/*` and `/assets/*` also highlight it.
@@ -1650,3 +1658,7 @@ Deliberately not done: `next build` was not run (a dev server was already using 
 **Third pass (explainer).** The four-column "How a photo becomes evidence" row on the empty dashboard is replaced by the
 Darkroom filmstrip (8.1). `Qr` moved out of `StoryStage.tsx` into `components/landing/Qr.tsx` so both share it. A grid
 item holding a horizontally scrolling track needs `min-w-0` and a `minmax(0,1fr)` column, or it widens the whole page.
+
+**Fourth pass (restraint).** The highlighter was on every section label and every section was numbered. Both are now
+rationed (4.2): one mark per app page, numbers only on real sequences. `Eyebrow` is plain by default; `mark` and
+`numbered` opt in.

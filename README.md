@@ -200,7 +200,7 @@ up to a minute, so keep the function timeout at 60 s or more.
 app/            pages and API route handlers (one folder per action). (app)/ has the app shell, (public)/ the QR and story pages, / is the landing page
 components/     presentational UI (no business logic)
 lib/            plain functions: trust, geo, pairing, signals, manifest, cards, story, video, mp4meta, search, analysis...
-scripts/        try-ai-vision, upload-font, seed-demo, check-demo-flow, demo-assets/
+scripts/        try-ai-vision, upload-font, seed-demo, check-demo-flow (.mts), demo-assets/
 supabase/       SQL migration
 DESIGN.md       the frontend design spec (tokens, type, components, motion) the UI was built from
 PROGRESS.md     phase-by-phase build log
