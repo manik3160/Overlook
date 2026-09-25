@@ -32,7 +32,7 @@ async function liveNumbers() {
       supabase.from("projects").select("id").order("created_at", { ascending: false }).limit(1),
     ])
     const stats = computeStats(assets ?? [])
-    const sealed = (reports ?? []).filter((r) => r.kind !== "social")
+    const sealed = (reports ?? []).filter((r) => r.kind === "donor" || r.kind === "csr")
     return { stats, sealed: sealed.length, reportId: sealed[0]?.id as string | undefined, projectId: projects?.[0]?.id as string | undefined }
   } catch {
     return null

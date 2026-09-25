@@ -43,7 +43,7 @@ export default async function Dashboard() {
   const projects = (projectRows ?? []) as Project[]
   const assets = (assetRows ?? []) as Row[]
   const stats = computeStats(assets)
-  const reports = (reportRows ?? []).filter((r) => r.kind !== "social").length
+  const reports = (reportRows ?? []).filter((r) => r.kind === "donor" || r.kind === "csr").length
   const stories = (reportRows ?? []).filter((r) => r.kind === "social").length
 
   // Band counts use the same rule as "verified": approved counts as verified, rejected is excluded.

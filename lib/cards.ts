@@ -15,11 +15,11 @@ export const CARD_SIZES: Record<CardKind, { w: number; h: number; label: string 
 // encodeURIComponent, then double-encode the three characters Cloudinary treats specially in overlay text.
 export const escapeOverlayText = (text: string): string => encodeURIComponent(text).replace(/%(25|2C|2F)/g, "%25$1")
 
-const PIXELATE = "e_pixelate_faces"
-const layerId = (publicId: string) => publicId.replace(/\//g, ":")
+export const PIXELATE = "e_pixelate_faces"
+export const layerId = (publicId: string) => publicId.replace(/\//g, ":")
 
-type TextOpts = { font: string; size: number; width: number; gravity: string; x?: number; y?: number; bg?: string }
-function textLayer(text: string, o: TextOpts): string {
+export type TextOpts = { font: string; size: number; width: number; gravity: string; x?: number; y?: number; bg?: string }
+export function textLayer(text: string, o: TextOpts): string {
   const style = o.font === "Arial" ? `${o.font}_${o.size}_bold` : `${o.font}_${o.size}`
   const placement = [`g_${o.gravity}`, o.x !== undefined ? `x_${o.x}` : "", o.y !== undefined ? `y_${o.y}` : ""].filter(Boolean).join(",")
   return `l_text:${style}:${escapeOverlayText(text)},co_white,w_${o.width},c_fit,b_rgb:${o.bg ?? "000000B3"}/fl_layer_apply,${placement}`

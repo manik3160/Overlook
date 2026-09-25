@@ -9,6 +9,7 @@ import Scorecard from "@/components/Scorecard"
 import ReportsPanel, { type ReportListItem } from "@/components/ReportsPanel"
 import CampaignCards from "@/components/CampaignCards"
 import StoryPanel from "@/components/StoryPanel"
+import ReelPanel, { type ReelView } from "@/components/ReelPanel"
 import PairsPanel, { type PairView } from "@/components/PairsPanel"
 import SectionNav from "@/components/SectionNav"
 import type { TileAsset } from "@/components/EvidenceTile"
@@ -17,6 +18,7 @@ import { InlineNotice } from "@/components/ui/notice"
 import { Sheet } from "@/components/ui/sheet"
 import { buttonVariants } from "@/components/ui/button"
 import { loadCampaign } from "@/lib/campaign-data"
+import { reelSeconds, reelUrl } from "@/lib/reel"
 import { loadEvidence } from "@/lib/project-data"
 import { computeScorecard } from "@/lib/signals"
 import { slideUrl, thumbUrl } from "@/lib/cloudinary-url"
@@ -51,9 +53,15 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { rows: evidence, rejected } = await loadEvidence(id)
   const scorecard = computeScorecard(evidence)
   const { data: pairRows } = await supabase.from("pairs").select("id, before_asset_id, after_asset_id, distance_m, days_apart, change_summary").eq("project_id", id).order("created_at")
-  const { data: reportRows } = await supabase.from("reports").select("id, kind, manifest_sha256, created_at").eq("project_id", id).order("created_at", { ascending: false })
+  const { data: reportRows } = await supabase.from("reports").select("id, kind, manifest_sha256, created_at").eq("project_id", id).neq("kind", "reel").order("created_at", { ascending: false })
   const reports: ReportListItem[] = (reportRows ?? []).map((r) => ({ id: r.id, kind: r.kind, sha: r.manifest_sha256, createdAt: formatTime(r.created_at) }))
   const campaign = await loadCampaign(id)
+  const { data: reelRow } = await supabase.from("reports").select("manifest, created_at").eq("project_id", id).eq("kind", "reel").order("created_at", { ascending: false }).limit(1).maybeSingle()
+  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const reelSlides = ((reelRow?.manifest?.slides ?? []) as { slide_public_id: string }[]).map((s) => s.slide_public_id)
+  const reel: ReelView | null = reelRow && cloud && reelSlides.length
+    ? { url: reelUrl(cloud, reelSlides), downloadUrl: reelUrl(cloud, reelSlides, { download: "overlook-reel" }), seconds: reelSeconds(reelSlides.length), generatedAt: formatTime(reelRow.created_at) }
+    : null
   const { count: storyCount } = await supabase.from("reports").select("id", { count: "exact", head: true }).eq("project_id", id).eq("kind", "social")
   const byId = new Map(evidence.map((e) => [e.id, e]))
   const pairs: PairView[] = (pairRows ?? []).flatMap((p) => {
@@ -148,6 +156,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       <Section id="campaign" eyebrow="06 · Campaign & story" title="Cards for sharing">
         {campaign && <CampaignCards campaign={campaign} />}
         <StoryPanel projectId={id} hasStory={(storyCount ?? 0) > 0} />
+        <ReelPanel projectId={id} reel={reel} />
       </Section>
 
       <p className="text-small"><Link href="/dashboard" className="text-accent-ink hover:underline">← Back to overview</Link></p>

@@ -26,7 +26,7 @@ Built for Code Cubicle 6.0 (Problem Statement 02, Cloudinary track).
 | Search | Describe what you want ("garbage near the road"); semantic search plus filters (project, tag, trust, date, type) and exact-word transcript search for videos. |
 | Impact | Before/after pairing with a slider and an AI change summary, and an Impact Scorecard whose every number is clickable. |
 | Reports | Donor / CSR PDF (scorecard, pairs, evidence table, QR) plus a public verification page. |
-| Campaign | Instagram, story and **Hindi** WhatsApp cards (faces pixelated) and a public impact-story page built only from verified evidence. |
+| Campaign | Instagram, story and **Hindi** WhatsApp cards (faces pixelated), a public impact-story page and a **highlight reel** video (Cloudinary splicing, crossfades), all built only from verified evidence. |
 | Video | Transcript (Gemini), key frames every ~15 s as analyzable assets, frame-to-exact-second links, searchable spoken words. |
 
 ## Problem statement to feature map
@@ -102,6 +102,7 @@ You need Node 20+, and free accounts on **Supabase**, **Cloudinary** and **Googl
    - Console, Add-ons: subscribe to **Cloudinary AI Vision**.
    - Settings, Upload, Upload presets: add a preset with **Signing mode = Signed**; its name goes in `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`.
    - Upload the Hindi font once (needed for the Hindi campaign card): `npm run upload-font`.
+   - Upload the reel base clip once (needed for highlight reels): `npm run upload-reel-base`.
 4. **Gemini**: create an API key at Google AI Studio.
 5. **Run**
    ```bash

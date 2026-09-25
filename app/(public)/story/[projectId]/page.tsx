@@ -22,6 +22,7 @@ type StoryManifest = {
   verified_photos: number; total_photos: number
   best_pair: { before_url: string; after_url: string; summary: string | null } | null
 }
+type ReelManifest = { reel: { url: string; seconds: number }; sources: string[] }
 
 // Weight contrast (light sentence, one heavy figure): bold the first number in the headline.
 function Headline({ text }: { text: string }) {
@@ -38,6 +39,9 @@ export default async function StoryPage(props: PageProps<"/story/[projectId]">) 
 
   const m = report.manifest as StoryManifest
   const intact = manifestHash(report.manifest) === report.manifest_sha256
+  // The highlight reel is built from verified photos only (faces pixelated); shown only if its record is intact.
+  const { data: reelRow } = await supabase.from("reports").select("manifest, manifest_sha256").eq("project_id", projectId).eq("kind", "reel").order("created_at", { ascending: false }).limit(1).maybeSingle()
+  const reel = reelRow && manifestHash(reelRow.manifest) === reelRow.manifest_sha256 ? (reelRow.manifest as ReelManifest) : null
   const sections: [string, string, string][] = [["01", "The problem", m.narrative.problem], ["02", "What we did", m.narrative.action], ["03", "The result", m.narrative.result]]
 
   return (
@@ -72,6 +76,15 @@ export default async function StoryPage(props: PageProps<"/story/[projectId]">) 
           <h2 id="s-ba" className="sr-only">Before and after</h2>
           <BeforeAfterSlider beforeUrl={m.best_pair.before_url} afterUrl={m.best_pair.after_url} nudge />
           {m.best_pair.summary && <p className="max-w-[62ch]">{m.best_pair.summary}</p>}
+        </section>
+      )}
+
+      {reel && (
+        <section className="grid gap-4" aria-labelledby="s-reel">
+          <Eyebrow>Highlight reel</Eyebrow>
+          <h2 id="s-reel" className="sr-only">Highlight reel</h2>
+          <video src={reel.reel.url} controls playsInline preload="metadata" className="aspect-square w-full max-w-[540px] border border-line bg-surface-2" aria-label={`Highlight reel, ${reel.reel.seconds} seconds`} />
+          <p className="text-small">{reel.reel.seconds} seconds, made from {reel.sources.length} verified photos. Faces are pixelated.</p>
         </section>
       )}
 
