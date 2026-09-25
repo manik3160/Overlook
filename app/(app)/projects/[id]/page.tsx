@@ -20,7 +20,7 @@ import { loadCampaign } from "@/lib/campaign-data"
 import { loadEvidence } from "@/lib/project-data"
 import { computeScorecard } from "@/lib/signals"
 import { slideUrl, thumbUrl } from "@/lib/cloudinary-url"
-import { supabase } from "@/lib/supabase"
+import { selectAll, supabase } from "@/lib/supabase"
 import { haversineM } from "@/lib/geo"
 import { dayKey, formatDay, formatTime } from "@/lib/dates"
 import type { Project } from "@/lib/project-schema"
@@ -42,7 +42,9 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   if (!project) notFound()
 
   const [{ data: mine }, { data: free }] = await Promise.all([
-    supabase.from("assets").select(COLS).eq("project_id", id).order("taken_at", { ascending: true, nullsFirst: false }),
+    selectAll<A>((from, to) =>
+      supabase.from("assets").select(COLS).eq("project_id", id).order("taken_at", { ascending: true, nullsFirst: false }).order("id").range(from, to),
+    ).then((data) => ({ data })),
     supabase.from("assets").select(COLS).is("project_id", null).order("created_at", { ascending: false }).limit(200),
   ])
   const assets = (mine ?? []) as A[]

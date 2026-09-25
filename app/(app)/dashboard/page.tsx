@@ -14,7 +14,7 @@ import { Sheet } from "@/components/ui/sheet"
 import { buttonVariants } from "@/components/ui/button"
 import { flagTitle } from "@/components/flag-copy"
 import { tileState } from "@/components/evidence-state"
-import { supabase } from "@/lib/supabase"
+import { selectAll, supabase } from "@/lib/supabase"
 import { clusterPoints, type GeoPoint } from "@/lib/geo"
 import { formatDay, formatTime } from "@/lib/dates"
 import { computeStats } from "@/lib/stats"
@@ -35,7 +35,9 @@ type Row = {
 export default async function Dashboard() {
   const [{ data: projectRows }, { data: assetRows }, { data: reportRows }] = await Promise.all([
     supabase.from("projects").select("*").order("created_at", { ascending: false }),
-    supabase.from("assets").select("id, public_id, project_id, secure_url, lat, lng, taken_at, created_at, resource_type, status, parent_asset_id, trust_score, trust_flags, review_status"),
+    selectAll<Row>((from, to) =>
+      supabase.from("assets").select("id, public_id, project_id, secure_url, lat, lng, taken_at, created_at, resource_type, status, parent_asset_id, trust_score, trust_flags, review_status").order("id").range(from, to),
+    ).then((data) => ({ data })),
     supabase.from("reports").select("kind"),
   ])
   const projects = (projectRows ?? []) as Project[]

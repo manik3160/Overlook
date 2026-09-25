@@ -27,7 +27,10 @@ export async function POST(request: Request) {
   let rateLimited: string | null = null
 
   for (const asset of (pending ?? []) as AssetRow[]) {
-    await supabase.from("assets").update({ status: "analyzing" }).eq("id", asset.id)
+    // Atomic claim: only one caller can move a row from pending to analyzing, so two open tabs
+    // (or two polls) never analyse (and bill) the same photo twice.
+    const { data: claimed } = await supabase.from("assets").update({ status: "analyzing" }).eq("id", asset.id).eq("status", "pending").select("id")
+    if (!claimed?.length) continue
     try {
       const outcome = await analyzeAsset(asset)
       if (outcome.status === "failed") await supabase.from("assets").update({ status: "failed" }).eq("id", asset.id)

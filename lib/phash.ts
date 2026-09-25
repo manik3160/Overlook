@@ -3,13 +3,23 @@
 export const NEAR_DUPLICATE_MAX_DISTANCE = 6
 
 const POPCOUNT = [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4]
+// char code -> nibble value, -1 for non-hex. This runs for every pair of photos, so no regex/parseInt here.
+const HEX = new Int8Array(128).fill(-1)
+for (let i = 0; i < 16; i++) {
+  HEX["0123456789abcdef".charCodeAt(i)] = i
+  HEX["0123456789ABCDEF".charCodeAt(i)] = i
+}
 
 // Returns null when a hash is missing/invalid or the lengths differ (not comparable).
 export function hammingDistance(a: string | null | undefined, b: string | null | undefined): number | null {
   if (!a || !b || a.length !== b.length) return null
-  if (!/^[0-9a-f]+$/i.test(a) || !/^[0-9a-f]+$/i.test(b)) return null
   let bits = 0
-  for (let i = 0; i < a.length; i++) bits += POPCOUNT[parseInt(a[i], 16) ^ parseInt(b[i], 16)]
+  for (let i = 0; i < a.length; i++) {
+    const x = HEX[a.charCodeAt(i)] ?? -1
+    const y = HEX[b.charCodeAt(i)] ?? -1
+    if (x < 0 || y < 0) return null
+    bits += POPCOUNT[x ^ y]
+  }
   return bits
 }
 

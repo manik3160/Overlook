@@ -13,13 +13,19 @@ export type Counts = { total: number; pending: number; analyzing: number; done: 
 // Small delivery copy of the image: cheaper to send to the AI providers than the original.
 const smallUrl = (secureUrl: string) => secureUrl.replace("/upload/", "/upload/c_limit,w_1024,h_1024,f_jpg,q_auto/")
 
+// Exact counts from the database (no rows transferred), so progress stays right past 1,000 files.
 export async function getCounts(): Promise<Counts> {
-  const { data } = await supabase.from("assets").select("status")
-  const counts: Counts = { total: 0, pending: 0, analyzing: 0, done: 0, failed: 0 }
-  for (const row of data ?? []) {
-    counts.total++
-    if (row.status in counts) counts[row.status as "pending" | "analyzing" | "done" | "failed"]++
+  const statuses = ["pending", "analyzing", "done", "failed"] as const
+  const count = async (status?: string) => {
+    let q = supabase.from("assets").select("id", { count: "exact", head: true })
+    if (status) q = q.eq("status", status)
+    const { count: n, error } = await q
+    if (error) throw new Error(error.message)
+    return n ?? 0
   }
+  const [total, ...byStatus] = await Promise.all([count(), ...statuses.map((s) => count(s))])
+  const counts: Counts = { total, pending: 0, analyzing: 0, done: 0, failed: 0 }
+  statuses.forEach((s, i) => (counts[s] = byStatus[i]))
   return counts
 }
 

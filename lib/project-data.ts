@@ -1,5 +1,5 @@
 import "server-only"
-import { supabase } from "@/lib/supabase"
+import { selectAll, supabase } from "@/lib/supabase"
 import type { PairCandidate } from "@/lib/pairing"
 import type { ScoreAsset, Signals } from "@/lib/signals"
 
@@ -13,12 +13,14 @@ const parseVector = (v: unknown): number[] | null => (typeof v === "string" ? (J
 
 // The project's photos as scorecard inputs. Rejected photos are excluded from every metric.
 export async function loadEvidence(projectId: string): Promise<{ rows: EvidenceRow[]; rejected: number }> {
-  const { data, error } = await supabase
-    .from("assets")
-    .select("id, public_id, etag, phash, trust_flags, secure_url, resource_type, caption, tags, taken_at, created_at, lat, lng, embedding, status, signals, trust_score, review_status")
-    .eq("project_id", projectId)
-  if (error) throw new Error(error.message)
-  const all = data ?? []
+  const all = await selectAll((from, to) =>
+    supabase
+      .from("assets")
+      .select("id, public_id, etag, phash, trust_flags, secure_url, resource_type, caption, tags, taken_at, created_at, lat, lng, embedding, status, signals, trust_score, review_status")
+      .eq("project_id", projectId)
+      .order("id")
+      .range(from, to),
+  )
   const rows = all
     .filter((a) => a.review_status !== "rejected")
     .map((a): EvidenceRow => ({

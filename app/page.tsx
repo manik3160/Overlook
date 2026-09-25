@@ -8,7 +8,7 @@ import ThemeToggle from "@/components/shell/ThemeToggle"
 import { SealMark } from "@/components/shell/Wordmark"
 import { buttonVariants } from "@/components/ui/button"
 import { Eyebrow } from "@/components/ui/layout"
-import { supabase } from "@/lib/supabase"
+import { selectAll, supabase } from "@/lib/supabase"
 import { computeStats } from "@/lib/stats"
 
 export const dynamic = "force-dynamic"
@@ -25,7 +25,9 @@ const PROOF: [string, string][] = [
 async function liveNumbers() {
   try {
     const [{ data: assets }, { data: reports }, { data: projects }] = await Promise.all([
-      supabase.from("assets").select("resource_type, status, parent_asset_id, trust_score, trust_flags, review_status"),
+      selectAll((from, to) =>
+        supabase.from("assets").select("resource_type, status, parent_asset_id, trust_score, trust_flags, review_status").order("id").range(from, to),
+      ).then((data) => ({ data })),
       supabase.from("reports").select("id, kind, created_at").order("created_at", { ascending: false }),
       supabase.from("projects").select("id").order("created_at", { ascending: false }).limit(1),
     ])

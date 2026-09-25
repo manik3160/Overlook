@@ -1,21 +1,39 @@
 import "server-only"
-import { supabase } from "@/lib/supabase"
-import { computeTrust, type TrustAsset, type TrustChecks, type TrustProject } from "@/lib/trust"
+import { selectAll, supabase } from "@/lib/supabase"
+import { canonicalJson } from "@/lib/manifest"
+import { computeTrust, type TrustAsset, type TrustChecks, type TrustFlag, type TrustProject } from "@/lib/trust"
 
-type Row = TrustAsset & { status: string; tags: string[] | null; caption: string | null; resource_type: string }
+type Row = TrustAsset & { status: string; tags: string[] | null; caption: string | null; resource_type: string; trust_score: number | null; trust_flags: TrustFlag[] | null }
 
-// Recomputes trust for the given assets (or all when omitted). Pure math + a few small reads;
+const ROW_COLS = "id, created_at, etag, phash, project_id, parent_asset_id, lat, lng, taken_at, has_exif, status, tags, caption, resource_type, trust_score, trust_flags"
+const UPDATE_CONCURRENCY = 10
+
+// Runs `fn` over `items` with at most `limit` in flight (plain Promise pool, no dependency).
+async function inParallel<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let next = 0
+  const worker = async () => {
+    while (next < items.length) await fn(items[next++])
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+}
+
+// Recomputes trust for the given assets (or all when omitted). Pure math + paged reads;
 // no paid API calls. Called after upload, after analysis, and whenever project membership/settings change.
+// Every read is paged (Supabase caps a request at 1,000 rows) so duplicate checks see the whole collection.
 export async function recomputeTrust(ids?: string[]): Promise<number> {
   if (ids && ids.length === 0) return 0
-  const [{ data: assets }, { data: projects }, { data: analyses }] = await Promise.all([
-    supabase.from("assets").select("id, created_at, etag, phash, project_id, parent_asset_id, lat, lng, taken_at, has_exif, status, tags, caption, resource_type"),
-    supabase.from("projects").select("id, center_lat, center_lng, radius_m, start_date, end_date"),
-    supabase.from("analyses").select("asset_id, result").eq("kind", "gemini_analysis"),
+  const [all, projects, analyses] = await Promise.all([
+    selectAll<Row>((from, to) => supabase.from("assets").select(ROW_COLS).order("id").range(from, to)),
+    selectAll<TrustProject & { id: string }>((from, to) =>
+      supabase.from("projects").select("id, center_lat, center_lng, radius_m, start_date, end_date").order("id").range(from, to),
+    ),
+    // only the moderation answers, not the whole cached Gemini result
+    selectAll<{ asset_id: string; checks: TrustChecks | null }>((from, to) =>
+      supabase.from("analyses").select("asset_id, checks:result->checks").eq("kind", "gemini_analysis").order("id").range(from, to).overrideTypes<{ asset_id: string; checks: TrustChecks | null }[], { merge: false }>(),
+    ),
   ])
-  const all = (assets ?? []) as Row[]
-  const projectById = new Map((projects ?? []).map((p) => [p.id as string, p as TrustProject]))
-  const checksByAsset = new Map((analyses ?? []).map((a) => [a.asset_id as string, a.result.checks as TrustChecks]))
+  const projectById = new Map(projects.map((p) => [p.id, p]))
+  const checksByAsset = new Map(analyses.map((a) => [a.asset_id, a.checks]))
   const idsByEtag = new Map<string, string[]>()
   for (const a of all) if (a.etag) idsByEtag.set(a.etag, [...(idsByEtag.get(a.etag) ?? []), a.id])
 
@@ -23,23 +41,31 @@ export async function recomputeTrust(ids?: string[]): Promise<number> {
   const checksFor = (a: Row): TrustChecks | null =>
     checksByAsset.get(a.id) ?? (a.etag ? idsByEtag.get(a.etag) ?? [] : []).map((id) => checksByAsset.get(id)).find(Boolean) ?? null
 
-  const targets = ids ? all.filter((a) => ids.includes(a.id)) : all
+  const wanted = ids ? new Set(ids) : null
+  const targets = wanted ? all.filter((a) => wanted.has(a.id)) : all
+  const changed: { id: string; score: number; flags: TrustFlag[] }[] = []
   for (const asset of targets) {
     const analysed = asset.status === "done"
     const result = computeTrust({
       asset,
       project: asset.project_id ? projectById.get(asset.project_id) ?? null : null,
-      others: all.filter((o) => o.id !== asset.id),
+      others: all, // computeTrust only compares against EARLIER uploads, so the asset itself never matches
       checks: checksFor(asset),
       // videos have no tags: they are low-confidence only when nothing could be said about them (no transcript summary)
       lowConfidence: analysed && (asset.resource_type === "video" ? !asset.caption : (asset.tags ?? []).length === 0 || !asset.caption),
     })
-    await supabase.from("assets").update({ trust_score: result.score, trust_flags: result.flags }).eq("id", asset.id)
+    const same = asset.trust_score === result.score && canonicalJson(asset.trust_flags ?? []) === canonicalJson(result.flags) // jsonb reorders keys
+    if (!same) changed.push({ id: asset.id, score: result.score, flags: result.flags })
   }
+
+  await inParallel(changed, UPDATE_CONCURRENCY, async (c) => {
+    const { error } = await supabase.from("assets").update({ trust_score: c.score, trust_flags: c.flags }).eq("id", c.id)
+    if (error) throw new Error(error.message)
+  })
   return targets.length
 }
 
 export async function recomputeProjectTrust(projectId: string): Promise<number> {
-  const { data } = await supabase.from("assets").select("id").eq("project_id", projectId)
-  return recomputeTrust((data ?? []).map((r) => r.id as string))
+  const rows = await selectAll<{ id: string }>((from, to) => supabase.from("assets").select("id").eq("project_id", projectId).order("id").range(from, to))
+  return recomputeTrust(rows.map((r) => r.id))
 }
