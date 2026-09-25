@@ -5,126 +5,349 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-display);
+  --font-mono: var(--font-data);
+
+  /* Overlook tokens (DESIGN.md 4.1) */
+  --color-bg: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-tint: var(--accent-tint);
+  --color-verified: var(--verified);
+  --color-verified-tint: var(--verified-tint);
+  --color-review: var(--review);
+  --color-review-tint: var(--review-tint);
+  --color-suspicious: var(--suspicious);
+  --color-suspicious-tint: var(--suspicious-tint);
+  --color-cy: var(--cy);
+  --color-cy-2: var(--cy-2);
+  --color-cy-line: var(--cy-line);
+  --color-cy-fg: var(--cy-fg);
+  --color-cy-fg2: var(--cy-fg2);
+  --color-cy-fg3: var(--cy-fg3);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+
+  /* shadcn mapping. "accent" stays the neutral hover surface; ours is accent-ink. */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--surface-2);
+  --color-accent-foreground: var(--fg);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar-ring: var(--ring);
+  --color-sidebar-border: var(--line);
+  --color-sidebar-accent-foreground: var(--fg);
+  --color-sidebar-accent: var(--surface-2);
+  --color-sidebar-primary-foreground: var(--bg);
+  --color-sidebar-primary: var(--fg);
+  --color-sidebar-foreground: var(--fg);
+  --color-sidebar: var(--surface-1);
+  --color-chart-1: var(--fg-3);
+  --color-chart-2: var(--fg-2);
+  --color-chart-3: var(--fg);
+  --color-chart-4: var(--accent-ink);
+  --color-chart-5: var(--line-strong);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
+  --radius-3xl: 6px;
+  --radius-4xl: 6px;
 }
 
+/* Paper (light) */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --bg: #F5F4F0;
+  --surface-1: #FBFAF8;
+  --surface-2: #EFEEE9;
+  --surface-3: #E6E4DD;
+  --line: #E0DED7;
+  --line-strong: #C9C6BD;
+  --fg: #141412;
+  --fg-2: #52504A;
+  --fg-3: #6D6B64;
+  --accent-ink: #2F4FC4;
+  --accent-tint: #E4E9F8;
+  --verified: #237A4B;
+  --verified-tint: #E3F0E7;
+  --review: #8A5600;
+  --review-tint: #F7EBD2;
+  --suspicious: #B3261E;
+  --suspicious-tint: #F8E1DE;
+  --scrim: rgb(0 0 0 / 0.62);
+  --shadow-pop: 0 16px 40px -12px rgb(0 0 0 / 0.18);
+
+  /* Cyanotype print colours: identical in both themes (DESIGN.md 4.9) */
+  --cy: #0F2A63;
+  --cy-2: #14336F;
+  --cy-line: #2B4A8C;
+  --cy-fg: #EEF2FB;
+  --cy-fg2: #BFCBEA;
+  --cy-fg3: #98AAD8;
+  --paper: #F3F1EA;
+  --ink: #15140F;
+  --flag: #C8372A;
+
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-4: 700ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emph: cubic-bezier(0.3, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface-1);
+  --card-foreground: var(--fg);
+  --popover: var(--surface-1);
+  --popover-foreground: var(--fg);
+  --primary: var(--fg);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--fg-2);
+  --destructive: var(--suspicious);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--accent-ink);
+  --radius: 0.375rem;
 }
 
+/* Darkroom (default) */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --bg: #0D0D0C;
+  --surface-1: #141413;
+  --surface-2: #1B1B19;
+  --surface-3: #242421;
+  --line: #2A2A27;
+  --line-strong: #3A3A36;
+  --fg: #EDECE7;
+  --fg-2: #A8A69E;
+  --fg-3: #85837B;
+  --accent-ink: #8FA7F2;
+  --accent-tint: #161C2E;
+  --verified: #6FCF97;
+  --verified-tint: #11271A;
+  --review: #E9B44C;
+  --review-tint: #2B2210;
+  --suspicious: #F2877B;
+  --suspicious-tint: #2E1512;
+  --shadow-pop: 0 16px 40px -12px rgb(0 0 0 / 0.45);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
+    @apply border-border;
   }
   html {
     @apply font-sans;
+    color-scheme: light;
   }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 15px;
+    line-height: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent-ink);
+    outline-offset: 2px;
+  }
+}
+
+/* Type utilities (DESIGN.md 4.2) */
+@utility text-eyebrow {
+  font-family: var(--font-mono);
+  font-stretch: 112.5%;
+  font-size: 10.5px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+@utility text-data {
+  font-family: var(--font-mono);
+  font-stretch: 87.5%;
+  font-size: 12px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+@utility text-hash {
+  font-family: var(--font-mono);
+  font-stretch: 75%;
+  font-size: 12.5px;
+  line-height: 20px;
+}
+@utility text-data-xl {
+  font-family: var(--font-mono);
+  font-stretch: 81%;
+  font-size: 40px;
+  line-height: 42px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+@utility text-micro {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+@utility text-display {
+  font-family: var(--font-heading);
+  font-size: 56px;
+  line-height: 60px;
+  letter-spacing: -0.03em;
+  font-weight: 300;
+}
+@utility text-h1 {
+  font-family: var(--font-heading);
+  font-size: 34px;
+  line-height: 40px;
+  letter-spacing: -0.025em;
+  font-weight: 300;
+  text-wrap: balance;
+}
+@utility text-h2 {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  line-height: 26px;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  text-wrap: balance;
+}
+@utility text-title {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+@utility text-small {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--fg-2);
+}
+@media (max-width: 767px) {
+  .text-h1 { font-size: 27px; line-height: 32px; }
+  .text-data-xl { font-size: 30px; line-height: 32px; }
+  .text-display { font-size: 36px; line-height: 40px; }
+}
+
+/* Numbered eyebrow: a 24px rule then the label (DESIGN.md 4.2) */
+.eyebrow-rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.eyebrow-rule::before {
+  content: "";
+  width: 24px;
+  height: 1px;
+  background: var(--fg-3);
+  flex: none;
+}
+
+/* Cyanotype develop + crop marks (DESIGN.md 4.9). Photos are square-cornered evidence. */
+.develop-frame { position: relative; overflow: hidden; background: var(--surface-2); }
+.develop-frame > .develop-veil {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  filter: url(#cyanotype);
+  transition: opacity 1200ms var(--ease);
+}
+.develop-frame.is-developed > .develop-veil { opacity: 0; }
+.develop-frame[data-hover-develop]:hover > .develop-veil,
+.develop-frame[data-hover-develop]:focus-within > .develop-veil { opacity: 0; transition-duration: 300ms; }
+
+.crop-marks {
+  --mk: var(--fg);
+  position: absolute; inset: -5px; pointer-events: none; opacity: 0;
+  transition: opacity var(--dur-2) var(--ease);
+  background:
+    linear-gradient(var(--mk), var(--mk)) top left / 12px 1.5px no-repeat,
+    linear-gradient(var(--mk), var(--mk)) top left / 1.5px 12px no-repeat,
+    linear-gradient(var(--mk), var(--mk)) top right / 12px 1.5px no-repeat,
+    linear-gradient(var(--mk), var(--mk)) top right / 1.5px 12px no-repeat,
+    linear-gradient(var(--mk), var(--mk)) bottom left / 12px 1.5px no-repeat,
+    linear-gradient(var(--mk), var(--mk)) bottom left / 1.5px 12px no-repeat,
+    linear-gradient(var(--mk), var(--mk)) bottom right / 12px 1.5px no-repeat,
+    linear-gradient(var(--mk), var(--mk)) bottom right / 1.5px 12px no-repeat;
+}
+.tile:hover .crop-marks, .tile:focus-visible .crop-marks, .tile:focus-within .crop-marks { opacity: 0.9; }
+.tile[data-flagged] .crop-marks { --mk: var(--suspicious); opacity: 1; }
+
+/* Motion: analyzing sweep line on tiles */
+@keyframes sweep { from { transform: translateY(0); } to { transform: translateY(100%); } }
+.sweep::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--accent-ink);
+  animation: sweep 1.4s linear infinite;
+}
+@keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+.skeleton { background: var(--surface-3); animation: pulse-soft 1.4s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.caret::after { content: "▌"; animation: blink 1s steps(1) infinite; color: var(--accent-ink); }
+@keyframes rise-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.rise-in { animation: rise-in var(--dur-2) var(--ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Leaflet: calm, desaturated base so pins carry the colour (DESIGN.md 7.11) */
+.leaflet-tile-pane { filter: grayscale(1) contrast(0.92) brightness(1.04); }
+.dark .leaflet-tile-pane { filter: grayscale(1) invert(1) contrast(0.85) brightness(0.9); }
+.leaflet-container { background: var(--surface-2); font-family: var(--font-sans); border-radius: 0; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: var(--surface-1); color: var(--fg); border-radius: 6px; box-shadow: var(--shadow-pop);
+  border: 1px solid var(--line-strong);
+}
+.leaflet-bar a, .leaflet-bar a:hover { background: var(--surface-1); color: var(--fg); border-color: var(--line-strong); }
+.leaflet-control-attribution { background: var(--surface-1) !important; color: var(--fg-3) !important; font-size: 10px; }
+.leaflet-control-attribution a { color: var(--fg-2) !important; }
+
+/* Landing "Prove" chapter: the section turns cyanotype by re-mapping the tokens (DESIGN.md 9.4) */
+.story-section { background: var(--bg); color: var(--fg); transition: background-color 600ms var(--ease); }
+.story-section.is-cyan {
+  --bg: var(--cy); --fg: var(--cy-fg); --fg-2: var(--cy-fg2); --fg-3: var(--cy-fg3);
+  --line: var(--cy-line); --line-strong: #3E5FA5; --surface-1: var(--cy-2); --surface-2: #1A3B7B; --surface-3: #22468C;
+  --accent-ink: #D2DCFB; --accent-tint: #1E3F80; --verified: #6FCF97; --suspicious: #F2877B; --review: #E9B44C;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
 }

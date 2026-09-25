@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { ArrowUpFromLine, Check, Circle, Loader, X } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { readExif } from "@/lib/exif"
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024
@@ -11,7 +12,13 @@ const IMAGE_EXT = ["jpg", "jpeg", "png", "webp", "heic", "heif"]
 const VIDEO_EXT = ["mp4", "mov", "webm"]
 const ACCEPT = [...IMAGE_EXT, ...VIDEO_EXT].map((e) => `.${e}`).join(",")
 
-type Row = { name: string; state: "queued" | "uploading" | "done" | "rejected" | "failed"; note?: string }
+type Row = { name: string; state: "queued" | "uploading" | "done" | "rejected" | "failed"; note?: string; meta?: string }
+
+const midEllipsis = (name: string, max = 30) => {
+  if (name.length <= max) return name
+  const keep = max - 1
+  return `${name.slice(0, Math.ceil(keep / 2))}…${name.slice(name.length - Math.floor(keep / 2))}`
+}
 
 // Returns a rejection reason, or null if the file is acceptable.
 function validate(file: File): string | null {
@@ -49,15 +56,32 @@ async function uploadToCloudinary(file: File) {
   return body
 }
 
+const metaLabel = (e: { lat: number | null; lng: number | null; takenAt: string | null }) => {
+  const gps = e.lat !== null && e.lng !== null
+  return gps && e.takenAt ? "GPS · time" : gps ? "GPS only" : e.takenAt ? "Time only" : "No metadata"
+}
+
+function StateIcon({ state }: { state: Row["state"] }) {
+  if (state === "uploading") return <Loader size={14} strokeWidth={1.5} className="animate-spin text-accent-ink" aria-label="Uploading" />
+  if (state === "done") return <Check size={14} strokeWidth={2} className="text-verified" aria-label="Uploaded" />
+  if (state === "rejected" || state === "failed") return <X size={14} strokeWidth={2} className="text-suspicious" aria-label={state === "failed" ? "Failed" : "Rejected"} />
+  return <Circle size={12} strokeWidth={1.5} className="text-fg-3" aria-label="Queued" />
+}
+
 export default function Uploader() {
   const router = useRouter()
   const [rows, setRows] = useState<Row[]>([])
+  const [dragging, setDragging] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   function update(i: number, patch: Partial<Row>) {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
   }
 
   async function handleFiles(files: File[]) {
+    setCollapsed(false)
+    setBusy(true)
     setRows(files.map((f) => ({ name: f.name, state: "queued" })))
     for (const [i, file] of files.entries()) {
       const problem = validate(file)
@@ -68,6 +92,7 @@ export default function Uploader() {
       update(i, { state: "uploading" })
       try {
         const exif = await readExif(file)
+        update(i, { meta: metaLabel(exif) })
         const up = await uploadToCloudinary(file)
         const save = await fetch("/api/assets", {
           method: "POST",
@@ -93,32 +118,70 @@ export default function Uploader() {
         update(i, { state: "failed", note: err instanceof Error ? err.message : String(err) })
       }
     }
+    setBusy(false)
     router.refresh()
   }
 
+  // The queue folds down to its summary 4 s after a batch finishes.
+  useEffect(() => {
+    if (busy || rows.length === 0) return
+    const t = setTimeout(() => setCollapsed(true), 4000)
+    return () => clearTimeout(t)
+  }, [busy, rows.length])
+
+  const count = (s: Row["state"]) => rows.filter((r) => r.state === s).length
+  const summary = `${count("done")} uploaded${count("rejected") ? ` · ${count("rejected")} rejected` : ""}${count("failed") ? ` · ${count("failed")} failed` : ""}${busy ? ` · ${count("queued") + count("uploading")} to go` : ""}`
+
+  function pick(files: File[]) {
+    if (files.length) void handleFiles(files)
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="grid gap-4">
       <input
         id="file-input"
         type="file"
         multiple
         accept={ACCEPT}
         onChange={(e) => {
-          const files = Array.from(e.target.files ?? [])
-          if (files.length) void handleFiles(files)
+          pick(Array.from(e.target.files ?? []))
           e.target.value = ""
         }}
-        className="hidden"
+        className="sr-only"
       />
-      <Button onClick={() => document.getElementById("file-input")?.click()}>Upload photos / videos</Button>
-      <p className="text-sm">Images up to 15 MB, videos up to 100 MB.</p>
-      <ul className="text-sm">
-        {rows.map((r, i) => (
-          <li key={i} data-state={r.state}>
-            {r.name}: {r.state}{r.note ? ` — ${r.note}` : ""}
-          </li>
-        ))}
-      </ul>
+      <label
+        htmlFor="file-input"
+        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); pick(Array.from(e.dataTransfer.files)) }}
+        className={cn(
+          "grid min-h-40 cursor-pointer content-center justify-items-start gap-2 rounded-md border px-6 py-6 transition-colors duration-[120ms] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent-ink has-[:focus-visible]:outline-2",
+          dragging ? "border-solid border-accent-ink bg-accent-tint" : "border-dashed border-line-strong bg-surface-1 hover:border-fg-3"
+        )}
+      >
+        <ArrowUpFromLine size={20} strokeWidth={1.5} className="text-fg-3" aria-hidden="true" />
+        <span className="text-title">{dragging ? "Release to upload" : "Drop field photos and videos here, or choose files"}</span>
+        <span className="text-data text-fg-3">JPG · PNG · WEBP · HEIC up to 15 MB &nbsp; MP4 · MOV · WEBM up to 100 MB</span>
+        <span className="text-small">Location and time are read from each file before it leaves your device.</span>
+      </label>
+
+      {rows.length > 0 && (
+        <div className="grid gap-1" aria-live="polite">
+          <p className="text-data text-fg-2">{summary}</p>
+          {!collapsed && (
+            <ul className="grid list-none border-t border-line p-0">
+              {rows.map((r, i) => (
+                <li key={i} data-state={r.state} className="grid grid-cols-[20px_1fr] items-center gap-x-3 gap-y-0.5 border-b border-line py-2.5 sm:grid-cols-[20px_minmax(0,1fr)_auto]">
+                  <StateIcon state={r.state} />
+                  <span className="text-data truncate" title={r.name}>{midEllipsis(r.name)}</span>
+                  {r.meta && <span className="text-data col-start-2 text-fg-3 sm:col-start-3">{r.meta}</span>}
+                  {r.note && <span className="text-small col-start-2 text-suspicious sm:col-span-2">{r.note}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   )
 }

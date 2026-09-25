@@ -1,104 +1,121 @@
 import Link from "next/link"
-import ProjectForm from "@/components/ProjectForm"
+import type { Metadata } from "next"
+import HeroContactSheet from "@/components/landing/HeroContactSheet"
+import StoryScroller from "@/components/landing/StoryScroller"
+import BriefLedger from "@/components/landing/BriefLedger"
+import Wordmark from "@/components/shell/Wordmark"
+import ThemeToggle from "@/components/shell/ThemeToggle"
+import { SealMark } from "@/components/shell/Wordmark"
+import { buttonVariants } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
-import { clusterPoints, type GeoPoint } from "@/lib/geo"
-import { formatDay } from "@/lib/dates"
-import { computeStats, type StatAsset } from "@/lib/stats"
-import type { Project } from "@/lib/project-schema"
+import { computeStats } from "@/lib/stats"
 
 export const dynamic = "force-dynamic"
+export const metadata: Metadata = { title: { absolute: "Overlook · verified field evidence" } }
 
-type AssetGeo = StatAsset & { id: string; project_id: string | null; lat: number | null; lng: number | null; taken_at: string | null; created_at: string }
+const PROOF: [string, string][] = [
+  ["8", "trust checks on every photo, each with a reason"],
+  ["64-bit", "perceptual hash to catch reused images"],
+  ["0", "AI calls ever repeated: results are cached"],
+  ["SHA-256", "seal on every report, checkable by QR"],
+]
 
-export default async function Home() {
-  const [{ data: projectRows }, { data: assetRows }, { data: reportRows }] = await Promise.all([
-    supabase.from("projects").select("*").order("created_at", { ascending: false }),
-    supabase.from("assets").select("id, project_id, lat, lng, taken_at, created_at, resource_type, status, parent_asset_id, trust_score, trust_flags, review_status"),
-    supabase.from("reports").select("kind"),
-  ])
-  const projects = (projectRows ?? []) as Project[]
-  const assets = (assetRows ?? []) as AssetGeo[]
-  const stats = computeStats(assets)
-  const reports = (reportRows ?? []).filter((r) => r.kind !== "social").length
-  const stories = (reportRows ?? []).filter((r) => r.kind === "social").length
+// Live numbers for the closing call to action. If the database is unreachable the page still renders.
+async function liveNumbers() {
+  try {
+    const [{ data: assets }, { data: reports }, { data: projects }] = await Promise.all([
+      supabase.from("assets").select("resource_type, status, parent_asset_id, trust_score, trust_flags, review_status"),
+      supabase.from("reports").select("id, kind, created_at").order("created_at", { ascending: false }),
+      supabase.from("projects").select("id").order("created_at", { ascending: false }).limit(1),
+    ])
+    const stats = computeStats(assets ?? [])
+    const sealed = (reports ?? []).filter((r) => r.kind !== "social")
+    return { stats, sealed: sealed.length, reportId: sealed[0]?.id as string | undefined, projectId: projects?.[0]?.id as string | undefined }
+  } catch {
+    return null
+  }
+}
 
-  const countByProject = new Map<string, number>()
-  for (const a of assets) if (a.project_id) countByProject.set(a.project_id, (countByProject.get(a.project_id) ?? 0) + 1)
-
-  const unassigned = assets.filter((a) => !a.project_id)
-  const points: GeoPoint[] = unassigned
-    .filter((a) => a.lat !== null && a.lng !== null)
-    .map((a) => ({ id: a.id, lat: a.lat!, lng: a.lng!, time: new Date(a.taken_at ?? a.created_at).getTime() }))
-  const suggestions = clusterPoints(points)
-  const ungroupable = unassigned.length - suggestions.reduce((n, c) => n + c.ids.length, 0)
+export default async function Landing() {
+  const live = await liveNumbers()
+  const s = live?.stats
+  const projectHref = live?.projectId ? `/projects/${live.projectId}` : "/dashboard"
+  const reportHref = live?.reportId ? `/verify/${live.reportId}` : "/dashboard"
+  const line = s && s.total > 0
+    ? `${s.total} files. ${s.verified} verified, ${s.awaitingReview} flagged for review, ${live.sealed} sealed report${live.sealed === 1 ? "" : "s"}. Click any number and see the photos behind it.`
+    : "An empty workspace, ready for your first upload."
 
   return (
-    <main className="space-y-8 p-8">
-      <header className="flex items-baseline gap-4">
-        <h1 className="text-2xl font-semibold">Overlook</h1>
-        <Link href="/upload" className="underline">Upload &amp; analyze</Link>
-        <Link href="/search" className="underline">Search</Link>
-        <Link href="/review" className="underline">Review queue</Link>
+    <>
+      <header className="sticky top-0 z-30 border-b border-line bg-bg">
+        <div className="mx-auto flex h-[60px] max-w-[1280px] items-center gap-7 px-4 md:px-6 xl:px-8">
+          <Wordmark href="/" />
+          <nav aria-label="Landing" className="hidden gap-[22px] md:flex">
+            <a href="#how" className="text-sm text-fg-2 hover:text-fg">How it works</a>
+            <a href="#brief" className="text-sm text-fg-2 hover:text-fg">The brief</a>
+            <Link href={reportHref} className="text-sm text-fg-2 hover:text-fg">Verify a report</Link>
+          </nav>
+          <span className="flex-1" />
+          <ThemeToggle />
+          <Link href="/dashboard" className={buttonVariants()}>Open the ledger →</Link>
+        </div>
       </header>
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-medium">At a glance</h2>
-        {stats.total === 0 ? (
-          <p className="text-sm">Nothing here yet. <Link href="/upload" className="underline">Upload photos or videos</Link> to begin: they are analyzed, scored for trust, grouped into projects, and turned into verifiable reports.</p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm md:grid-cols-3">
-            <li><Link href="/upload" className="underline">{stats.photos} photos, {stats.videos} videos</Link>{stats.frames > 0 && ` (+${stats.frames} video frames)`}</li>
-            <li><Link href="/upload" className="underline">{stats.analyzed} / {stats.total} analyzed</Link>{stats.pending > 0 && ` · ${stats.pending} waiting`}{stats.failed > 0 && ` · ${stats.failed} failed`}</li>
-            <li><Link href="/search?band=Verified" className="underline">{stats.verified} / {stats.scored} verified</Link> (trust 80+ or approved)</li>
-            <li><Link href="/review" className="underline">{stats.awaitingReview} flagged for review</Link></li>
-            <li>{projects.length} projects</li>
-            <li>{reports} reports · {stories} stories</li>
-          </ul>
-        )}
-      </section>
+      <main id="main" className="flex-1">
+        <div className="mx-auto max-w-[1280px] px-4 md:px-6 xl:px-8">
+          <section aria-labelledby="hero-h" className="grid items-center gap-6 py-10 lg:grid-cols-12 lg:py-16">
+            <div className="grid gap-[26px] lg:col-span-6">
+              <p className="text-eyebrow eyebrow-rule">Evidence platform for field projects</p>
+              <h1 id="hero-h" className="font-heading text-[clamp(42px,6.4vw,88px)] font-light leading-[0.96] tracking-[-0.04em] text-balance [&_b]:font-[650]">
+                Every field photo is a <b>claim.</b><br />Overlook <b className="text-accent-ink">checks</b> it.
+              </h1>
+              <p className="max-w-[50ch] text-lg leading-7 text-fg-2">NGOs, CSR teams and government field projects upload photos and video. Overlook reads where and when each one was taken, sees what is in it, scores how far to trust it, and seals the report so anyone can verify it by scanning a QR code.</p>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/dashboard" className={buttonVariants({ size: "lg" })}>Open the ledger →</Link>
+                <a href="#how" className={buttonVariants({ size: "lg", variant: "outline" })}>Watch a photo get checked ↓</a>
+              </div>
+            </div>
+            <div className="lg:col-span-6"><HeroContactSheet /></div>
+          </section>
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-medium">Projects ({projects.length})</h2>
-        {projects.length === 0 && <p className="text-sm">No projects yet: create one below, or confirm a suggestion once you have geotagged photos.</p>}
-        <ul className="space-y-1">
-          {projects.map((p) => (
-            <li key={p.id}>
-              <Link href={`/projects/${p.id}`} className="underline">{p.name}</Link>{" "}
-              · {p.activity_type ?? "no activity"} · {countByProject.get(p.id) ?? 0} photos
-            </li>
-          ))}
-        </ul>
-        <details>
-          <summary className="cursor-pointer">New project (manual)</summary>
-          <ProjectForm mode="create" submitLabel="Create project" />
-        </details>
-      </section>
+          <dl className="mb-6 grid grid-cols-2 border-y border-line md:grid-cols-4" aria-label="What the system does">
+            {PROOF.map(([n, t], i) => (
+              <div key={n} className={`grid content-start gap-1 border-line py-[18px] pr-[18px] max-md:nth-[n+3]:border-t md:border-l md:pl-[18px] md:first:border-l-0 md:first:pl-0 ${i % 2 ? "max-md:border-l max-md:pl-[18px]" : ""}`}>
+                <dt className="font-mono text-[30px] font-light leading-8 tracking-[-0.03em] [font-stretch:81%]">{n}</dt>
+                <dd className="text-small m-0">{t}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-medium">Suggested projects ({suggestions.length})</h2>
-        {suggestions.length === 0 && <p className="text-sm">No suggestions: upload photos with GPS (3+ within 500 m and 60 days).</p>}
-        {suggestions.map((c) => (
-          <details key={c.ids[0]} className="border p-2">
-            <summary className="cursor-pointer">
-              Suggested project: {c.ids.length} photos near {c.lat.toFixed(4)}, {c.lng.toFixed(4)} · {formatDay(new Date(c.start).toISOString())}
-              {c.end - c.start > 0 && ` – ${formatDay(new Date(c.end).toISOString())}`}
-            </summary>
-            <ProjectForm
-              mode="create"
-              submitLabel={`Confirm and create (${c.ids.length} photos)`}
-              assetIds={c.ids}
-              initial={{
-                center_lat: Number(c.lat.toFixed(6)),
-                center_lng: Number(c.lng.toFixed(6)),
-                radius_m: c.radiusM,
-                start_date: new Date(c.start).toISOString().slice(0, 10),
-                end_date: new Date(c.end).toISOString().slice(0, 10),
-              }}
-            />
-          </details>
-        ))}
-        {ungroupable > 0 && <p className="text-sm">{ungroupable} unassigned photos can&apos;t be grouped automatically (no GPS, or too few nearby). Assign them from a project page.</p>}
-      </section>
-    </main>
+        <StoryScroller />
+
+        <div className="mx-auto max-w-[1280px] px-4 md:px-6 xl:px-8">
+          <section id="brief" aria-labelledby="brief-h" className="grid scroll-mt-20 gap-7 pb-[72px] pt-24">
+            <div className="grid gap-2.5"><p className="text-eyebrow eyebrow-rule">Problem statement 02 · Cloudinary</p><h2 id="brief-h" className="text-h1">Everything the brief asks for, <b className="font-semibold">working</b>.</h2></div>
+            <BriefLedger project={projectHref} report={reportHref} />
+          </section>
+        </div>
+
+        <section aria-labelledby="cta-h" className="bg-cy py-[88px] text-cy-fg">
+          <div className="mx-auto grid max-w-[1280px] gap-6 px-4 md:px-6 xl:px-8">
+            <p className="text-eyebrow eyebrow-rule !text-cy-fg3">Sample workspace · no sign-in</p>
+            <h2 id="cta-h" className="font-heading text-[clamp(40px,6vw,76px)] font-light leading-none tracking-[-0.04em] [&_b]:font-[650]">Open the <b>ledger.</b></h2>
+            <p className="max-w-[52ch] text-[17px] leading-[27px] text-cy-fg2">{line}</p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/dashboard" className={buttonVariants({ variant: "paper", size: "lg" })}>Open the ledger →</Link>
+              <Link href={reportHref} className={buttonVariants({ variant: "onblue", size: "lg" })}>Verify a sealed report</Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-line py-7">
+        <div className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-4 px-4 md:px-6 xl:px-8">
+          <span className="text-data flex items-center gap-2 text-fg-3"><SealMark size={12} />Overlook · Code Cubicle 6.0 · Problem statement 02</span>
+          <span className="text-data text-fg-3">Cloudinary · Supabase · Gemini</span>
+        </div>
+      </footer>
+    </>
   )
 }

@@ -10,6 +10,8 @@ export type SearchHit = {
   trust_score: number | null; review_status: string; project_id: string | null; taken_at: string | null; created_at: string
   similarity: number | null
   parent_asset_id: string | null; frame_second: number | null; transcript: string | null
+  status: string; trust_flags: { code: string; severity: string }[] | null // only used to draw the tile's develop state
+  lat: number | null; lng: number | null
   transcriptMatch?: boolean
 }
 export type SearchOutcome = { hits: SearchHit[]; mode: "semantic" | "filters"; hidden: number }
@@ -22,7 +24,7 @@ export const MIN_SIMILARITY = 0.78
 export const MARGIN_BELOW_BEST = 0.06
 const CANDIDATES = 100
 const MAX_RESULTS = 40
-const COLS = "id, public_id, secure_url, resource_type, caption, tags, trust_score, review_status, project_id, taken_at, created_at, parent_asset_id, frame_second, transcript"
+const COLS = "id, public_id, secure_url, resource_type, caption, tags, trust_score, review_status, project_id, taken_at, created_at, parent_asset_id, frame_second, transcript, status, trust_flags, lat, lng"
 
 // Query embeddings are cached in memory so repeating a search never calls Gemini twice.
 const queryCache = new Map<string, number[]>()

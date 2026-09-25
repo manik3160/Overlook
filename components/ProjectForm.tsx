@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Field, inputCls } from "@/components/ui/field"
+import { InlineNotice } from "@/components/ui/notice"
 import type { Project } from "@/lib/project-schema"
 
 type Initial = Partial<Omit<Project, "id">>
@@ -46,18 +48,22 @@ export default function ProjectForm({ mode, projectId, initial = {}, assetIds, s
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid max-w-xl gap-2 text-sm">
-      <label>Name <input name="name" required defaultValue={initial.name ?? ""} className="border p-1" /></label>
-      <label>Activity <input name="activity_type" list="activities" defaultValue={initial.activity_type ?? ""} className="border p-1" /></label>
+    <form onSubmit={onSubmit} className="grid gap-4">
+      <Field label="Name"><input name="name" required defaultValue={initial.name ?? ""} className={inputCls} /></Field>
+      <Field label="Activity"><input name="activity_type" list="activities" defaultValue={initial.activity_type ?? ""} className={inputCls} /></Field>
       <datalist id="activities">{ACTIVITIES.map((a) => <option key={a} value={a} />)}</datalist>
-      <label>Description <input name="description" defaultValue={initial.description ?? ""} className="border p-1" /></label>
-      <label>Center latitude <input name="center_lat" type="number" step="any" defaultValue={initial.center_lat ?? ""} className="border p-1" /></label>
-      <label>Center longitude <input name="center_lng" type="number" step="any" defaultValue={initial.center_lng ?? ""} className="border p-1" /></label>
-      <label>Geofence radius (m) <input name="radius_m" type="number" defaultValue={initial.radius_m ?? 500} className="border p-1" /></label>
-      <label>Start date <input name="start_date" type="date" defaultValue={initial.start_date ?? ""} className="border p-1" /></label>
-      <label>End date <input name="end_date" type="date" defaultValue={initial.end_date ?? ""} className="border p-1" /></label>
-      {error && <p role="alert">{error}</p>}
-      <Button type="submit" disabled={busy}>{busy ? "Saving…" : submitLabel}</Button>
+      <Field label="Description"><input name="description" defaultValue={initial.description ?? ""} className={inputCls} /></Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Centre latitude"><input name="center_lat" type="number" step="any" defaultValue={initial.center_lat ?? ""} className={inputCls} /></Field>
+        <Field label="Centre longitude"><input name="center_lng" type="number" step="any" defaultValue={initial.center_lng ?? ""} className={inputCls} /></Field>
+      </div>
+      <Field label="Geofence radius (m)"><input name="radius_m" type="number" defaultValue={initial.radius_m ?? 500} className={inputCls} /></Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Start date"><input name="start_date" type="date" defaultValue={initial.start_date ?? ""} className={inputCls} /></Field>
+        <Field label="End date"><input name="end_date" type="date" defaultValue={initial.end_date ?? ""} className={inputCls} /></Field>
+      </div>
+      {error && <InlineNotice tone="error">{error}</InlineNotice>}
+      <Button type="submit" size="lg" disabled={busy} aria-busy={busy || undefined}>{busy ? "Saving…" : submitLabel}</Button>
     </form>
   )
 }

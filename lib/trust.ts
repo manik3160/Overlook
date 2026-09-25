@@ -38,7 +38,17 @@ export type TrustResult = { score: number; band: TrustBand; flags: TrustFlag[] }
 
 const DAY_MS = 86_400_000
 const TIMEFRAME_SLACK_DAYS = 7
-const NO_METADATA_CAP = 60
+export const NO_METADATA_CAP = 60
+
+// One source of truth for the score arithmetic; the UI's audit trace reads these too (DESIGN.md 14.2).
+export const TRUST_DEDUCTIONS = {
+  DUPLICATE_EXACT: 50,
+  DUPLICATE_REUSED: 40,
+  PHOTO_OF_PHOTO: 35,
+  OUTSIDE_GEOFENCE: 25,
+  OUTSIDE_TIMEFRAME: 15,
+  IRRELEVANT: 10,
+} as const
 
 export function trustBand(score: number): TrustBand {
   return score >= 80 ? "Verified" : score >= 50 ? "Needs review" : "Suspicious"
@@ -55,7 +65,7 @@ function duplicateFlag(asset: TrustAsset, others: TrustOther[]): { flag: TrustFl
   const exact = earlier.find((o) => asset.etag && o.etag === asset.etag)
   if (exact) {
     return {
-      deduction: 50,
+      deduction: TRUST_DEDUCTIONS.DUPLICATE_EXACT,
       flag: {
         code: "DUPLICATE_EXACT",
         severity: "warning",
@@ -73,7 +83,7 @@ function duplicateFlag(asset: TrustAsset, others: TrustOther[]): { flag: TrustFl
   if (!best) return null
   const differentProject = !!best.other.project_id && best.other.project_id !== asset.project_id
   return {
-    deduction: 40,
+    deduction: TRUST_DEDUCTIONS.DUPLICATE_REUSED,
     flag: {
       code: "DUPLICATE_REUSED",
       severity: differentProject ? "high" : "warning",
@@ -125,21 +135,21 @@ export function computeTrust(input: TrustInput): TrustResult {
   }
   if (checks?.photo_of_screen_or_print) {
     flags.push({ code: "PHOTO_OF_PHOTO", severity: "high", reason: "Flagged for review: this looks like a photo of a screen or a printed photograph.", evidence: {} })
-    deduction += 35
+    deduction += TRUST_DEDUCTIONS.PHOTO_OF_PHOTO
   }
   const geo = project ? geofenceFlag(asset, project) : null
   if (geo) {
     flags.push(geo)
-    deduction += 25
+    deduction += TRUST_DEDUCTIONS.OUTSIDE_GEOFENCE
   }
   const time = project ? timeframeFlag(asset, project) : null
   if (time) {
     flags.push(time)
-    deduction += 15
+    deduction += TRUST_DEDUCTIONS.OUTSIDE_TIMEFRAME
   }
   if (checks?.unrelated_to_field_work) {
     flags.push({ code: "IRRELEVANT", severity: "warning", reason: "Flagged for review: the image does not appear related to field or community work.", evidence: {} })
-    deduction += 10
+    deduction += TRUST_DEDUCTIONS.IRRELEVANT
   }
   if (!asset.has_exif) {
     flags.push({ code: "NO_METADATA", severity: "info", reason: "No location or time metadata: this photo can't be verified on its own (that is not a sign of tampering).", evidence: { cap: NO_METADATA_CAP } })

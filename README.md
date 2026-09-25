@@ -34,7 +34,7 @@ Built for Code Cubicle 6.0 (Problem Statement 02, Cloudinary track).
 | PS requirement | Feature | Where |
 |---|---|---|
 | Analyze and organize **large collections** of image **and video** | Direct-to-Cloudinary upload, background analysis with progress, cache-first AI, video key frames | `/upload`, `lib/analysis.ts`, `lib/video-processing.ts` |
-| Organize by **project, location, timeline** | Auto project suggestions, map, timeline | `/`, `/projects/[id]`, `lib/geo.ts` |
+| Organize by **project, location, timeline** | Auto project suggestions, map, timeline | `/dashboard`, `/projects/[id]`, `lib/geo.ts` |
 | Identify projects, activities, locations, **visual signals** | Taxonomy tags, countable visual signals, EXIF/video GPS | `lib/taxonomy.ts`, `lib/gemini.ts`, `lib/exif.ts`, `lib/mp4meta.ts` |
 | **Verifying** / reliable insights | Evidence Trust Score + review queue | `lib/trust.ts`, `/review`, `/assets/[id]` |
 | Searchable via AI metadata, tags, **semantic discovery** | Embeddings + tag/trust/date filters + transcript search | `/search`, `lib/search.ts` |
@@ -139,7 +139,8 @@ pipeline uses, so **Analyze** finishes in seconds and spends no AI Vision units.
 
 Walk-through (matches CLAUDE.md section 10):
 
-1. **Dashboard** shows the landing numbers and the suggested projects. **/upload**: upload, then press **Analyze**.
+0. **Landing page** (`/`): scroll it. One photo is read, analyzed, caught, measured and sealed; "Open the ledger" opens the dashboard.
+1. **Dashboard** (`/dashboard`) shows the chain of custody and the suggested projects. **/upload**: upload, then press **Analyze**.
 2. **/review**: the planted problems are flagged with reasons (exact duplicate, re-used copy, far away, wrong date, no metadata, photo of a screen).
 3. **Project page**: scorecard (every number is a link), map, timeline, **Find before/after pairs** (slider + AI summary).
 4. **Generate donor PDF**. Scan the QR (or open the verification page): it shows the hash check and traces every photo to its original.
@@ -196,11 +197,12 @@ up to a minute, so keep the function timeout at 60 s or more.
 ## Project layout
 
 ```
-app/            pages and API route handlers (one folder per action)
+app/            pages and API route handlers (one folder per action). (app)/ has the app shell, (public)/ the QR and story pages, / is the landing page
 components/     presentational UI (no business logic)
 lib/            plain functions: trust, geo, pairing, signals, manifest, cards, story, video, mp4meta, search, analysis...
 scripts/        try-ai-vision, upload-font, seed-demo, check-demo-flow, demo-assets/
 supabase/       SQL migration
+DESIGN.md       the frontend design spec (tokens, type, components, motion) the UI was built from
 PROGRESS.md     phase-by-phase build log
 CLAUDE.md       the plan this project was built against
 ```
