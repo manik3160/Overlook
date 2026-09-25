@@ -157,9 +157,9 @@ self-hosts them at build time (no npm dependency, no runtime request to Google).
 
 | Role | Family | Why this face |
 |---|---|---|
-| **Display** (h1, h2, hero figures in prose, story headline) | **Funnel Display** (variable 300–800) | A 2024 grotesk with slightly squared, "instrument" terminals. It feels current without being one of the over-used safe faces. Its light weights carry the brief's bold-word/light-words headline pattern well. |
-| **UI and body** | **Funnel Sans** (variable 300–800, with italics) | The text companion to Funnel Display, so display and body share one skeleton. It is calm at 13–15px and has tabular figures. |
-| **Data** (IDs, hashes, coordinates, times, scores, eyebrows) | **Martian Mono** (variable weight **and width** 75–112.5%) | The ledger voice. Its width axis lets one family do two jobs: **wide (112.5%) for uppercase eyebrows**, which gives the letter-spaced feel of the PS brief, and **condensed (75%) for 64-character SHA-256 hashes**, so they fit on a phone. |
+| **Display** (h1, h2, hero figures in prose, story headline) | **Funnel Display** (variable 300 to 800) | A 2024 grotesk with slightly squared, "instrument" terminals. It feels current without being one of the over-used safe faces. Its light weights carry the brief's bold-word/light-words headline pattern well. |
+| **UI and body** | **Funnel Sans** (variable 300 to 800, with italics) | The text companion to Funnel Display, so display and body share one skeleton. It is calm at 13 to 15px and has tabular figures. |
+| **Data** (IDs, hashes, coordinates, times, scores, eyebrows) | **Martian Mono** (variable weight **and width** 75 to 112.5%) | The ledger voice. Its width axis lets one family do two jobs: **wide (112.5%) for uppercase eyebrows**, which gives the letter-spaced feel of the PS brief, and **condensed (75%) for 64-character SHA-256 hashes**, so they fit on a phone. |
 
 Do not use Inter, Space Grotesk or Instrument Serif. They are the current "AI template" faces (see §2). Remove
 Geist from `layout.tsx` as well: keeping it beside Funnel would add a fourth family for no gain.
@@ -489,7 +489,7 @@ right-aligned inside the button, for example `Approve [A]`.
 This is the most important atom. It **always shows three signals**: a mark shape, the band label, and the score.
 
 ```
-[■✓ Verified · 92]      [■– Needs review · 65]      [■✕ Suspicious · 35]      [○ Not scored]
+[■✓ Verified · 92]      [■- Needs review · 65]      [■✕ Suspicious · 35]      [○ Not scored]
 ```
 
 - The container is 22px tall, radius-sm, `--{band}-tint` background, with `--{band}` text and mark, padding 0 8px 0 4px, and a 6px gap.
@@ -504,7 +504,7 @@ This is the most important atom. It **always shows three signals**: a mark shape
 
 ### 7.4 TrustMeter (new, presentational)
 
-A horizontal 0–100 bar for the asset page and the review cards.
+A horizontal 0 to 100 bar for the asset page and the review cards.
 
 ```
 0 ─────────────────────────|50───────────────|80──────────── 100
@@ -572,7 +572,7 @@ Human titles, mapped from the flag code (keep them in one map in `components/fla
 │   [photo]            │
 │                  0:45│  ← timecode chip (video frames) bottom-right, scrim
 └──────────────────────┘
-[■– Needs review · 65]      ← TrustBadge
+[■- Needs review · 65]      ← TrustBadge
 Pile of plastic waste beside a road…   ← caption, text-small, 2-line clamp
 ⌖ GPS  ◷ 12 Aug 2026, 09:14            ← MetaLine, text-data --fg-3
 ```
@@ -891,7 +891,7 @@ FOOTER (mono): Overlook · Code Cubicle 6.0 · Problem statement 02 | Cloudinary
 - **pHash visual.** Two 8×8 bit grids (64 cells; filled = 1). The 3 differing bits get a `--suspicious` outline. Label: "Distance 3 · ≤ 6 means near-identical". This shows the real mechanism (Hamming distance of 64-bit hashes). **Do not** draw boxes on objects in the photo: the AI returns no bounding boxes, and the landing page must not imply that it does.
 
 **Layout and responsive**
-- Desktop (≥ 900px): the steps sit in columns 1–5, and the stage in columns 7–12 is `position: sticky; top: 76px; height: calc(100vh - 100px)`, centring its content.
+- Desktop (≥ 900px): the steps sit in columns 1 to 5, and the stage in columns 7 to 12 is `position: sticky; top: 76px; height: calc(100vh - 100px)`, centring its content.
 - Mobile (< 900px): the stage becomes a sticky strip under the header, at most about 48vh, with a `--bg` background and a bottom hairline. It shows only the photo, its chips, and the score strip; the readout and check panels are hidden. Each step's own `facts` list carries the same data as text. Steps are `min-height: 78vh` and always fully opaque.
 - The hero stacks (copy, then the contact sheet) below 1024px. The contact sheet stays 4 columns.
 
@@ -903,7 +903,7 @@ FOOTER (mono): Overlook · Code Cubicle 6.0 · Problem statement 02 | Cloudinary
 | `HeroContactSheet` | Client component: runs the develop sequence once on mount (§9.4). |
 | `ProofLine` | Static server component. |
 | `StoryScroller` | Client component. It owns the scroll progress and passes `(chapter, progress)` to the stage. It uses `IntersectionObserver` to know when the story is on screen, plus one `requestAnimationFrame`-throttled scroll listener while it is. **No scroll libraries** (no GSAP, no Lenis, no framer-motion). |
-| `StoryStage` | Pure function of `(chapter, progress)`, so scrolling back up replays correctly. It has three scenes, cross-faded over 350ms: Photo (chapters 1–3), BeforeAfter (4), and Report (5). |
+| `StoryStage` | Pure function of `(chapter, progress)`, so scrolling back up replays correctly. It has three scenes, cross-faded over 350ms: Photo (chapters 1 to 3), BeforeAfter (4), and Report (5). |
 | `PhashGrid` | Renders 64 cells from a bit array; `revealRows` prop. |
 | `BriefLedger` | Static table. |
 | `CtaBand` | Server component with live stats. |
@@ -947,7 +947,7 @@ TRUST DISTRIBUTION  ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
  …
 
 ── 04 · SUGGESTED PROJECTS (1)
-┌ Suggested: 34 photos near 28.5412, 77.3013 · 3 Aug – 14 Sep 2026 ─────────────────┐
+┌ Suggested: 34 photos near 28.5412, 77.3013 · 3 Aug to 14 Sep 2026 ─────────────────┐
 │ [thumb][thumb][thumb][thumb][thumb] +29       radius ≈ 180 m    [Review & create] │
 └──────────────────────────────────────────────────────────────────────────────────┘
 7 unassigned photos can't be grouped automatically (no GPS, or too few nearby). Assign them from a project page.
@@ -976,20 +976,21 @@ TRUST DISTRIBUTION  ▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
   - A mono line with the coordinates and the date range.
   - "Review & create" opens a Sheet with `ProjectForm` prefilled exactly as today, with the submit label `Confirm and create (34 photos)`.
   - The ungroupable line stays as a `text-small --fg-2` note below.
-- **Empty workspace** (`stats.total === 0`): replace sections 01–04 with a **pipeline explainer** that doubles as the
-  CTA. This is the only place where the product explains itself, because it has no data yet:
+- **Empty workspace** (`stats.total === 0`): the header gets the developing sample roll as its aside (see 6.2), and the
+  section below is the **Darkroom filmstrip** (`components/DarkroomStrip.tsx`): one sample photo (the "photo of a
+  screen") travels across four film frames with sprocket holes top and bottom.
 
-```
-── GET STARTED
-Nothing in the ledger yet.
-01 UPLOAD ──── 02 ANALYZE ──── 03 SCORE ──── 04 PROVE
-Photos & video   Tags, caption,   Trust score with   PDF + QR anyone
-with GPS/time    6 visual signals reasons            can verify
-[Upload evidence]
-```
+| Frame | The photo frame shows |
+|---|---|
+| 01 Upload | Undeveloped blue photo, `Pending`, `img_2041.jpg 3.1 MB`, then the GPS and time it carries |
+| 02 Analyze | Still blue, a tag chip, the caption typing out, two signals |
+| 03 Score | Red crop marks and "Photo of a screen", the score counting 100 to 65, `Needs review 65` badge, the reason line |
+| 04 Prove | A paper report sheet with QR, the hash resolving block by block, "Report unchanged" |
 
-  Four columns connected by a 1px rule, each with a mono step number, a `text-title`, and one `text-small` line. On
-  mobile it stacks vertically with a vertical rule. There is no illustration.
+  It plays once when scrolled into view (about 950 ms per frame, active frame marked by a top accent bar), has a
+  Replay button, replays a single frame on hover, and renders the finished state under reduced motion. The four captions
+  are a real ordered list, always visible. On phones it is a horizontal snap row that follows the active frame during
+  playback. Illustrative only: canvas-drawn sample, fixed strings, no data and no quota.
 
 ### 8.2 `/upload` Upload & analyze: `app/upload/page.tsx`
 
@@ -1309,7 +1310,7 @@ delays access to the information: the final values are in the DOM, and in the ac
 
 Under reduced motion it renders the final state at once.
 
-**The scroll story.** The progress `p` (0–1) of the active step is measured from its top crossing 55% of the
+**The scroll story.** The progress `p` (0 to 1) of the active step is measured from its top crossing 55% of the
 viewport. The stage is a pure function of `(chapter, p)`:
 
 | Chapter | Stage behaviour by progress |
@@ -1363,7 +1364,7 @@ or an arrow. The story prompt in `lib/gemini.ts` tells the model the same.
 
 ## 11. Responsive behaviour
 
-| Area | ≥ 1280 (xl) | 1024–1279 (lg) | 768–1023 (md) | < 768 (mobile) |
+| Area | ≥ 1280 (xl) | 1024 to 1279 (lg) | 768 to 1023 (md) | < 768 (mobile) |
 |---|---|---|---|---|
 | Top bar | Full: nav + search + toggle | Same; search 220px | Search hidden (nav item remains) | Wordmark + review chip + menu sheet |
 | Dashboard stats | 5 across | 5 across | 3 + 2 | 2 columns; the 5th spans both |
@@ -1581,7 +1582,7 @@ Type utilities (Tailwind v4 `@utility`, in `globals.css`):
 5. **EvidenceTile**, then swap it into `/upload`, `/search`, `/projects/[id]/evidence`, and the pickers.
 6. **Landing** (`/`, §8.0 and §9.4), and move the dashboard to `/dashboard`.
 7. **Pages, in demo order:** `/dashboard` → `/upload` → `/projects/[id]` (Scorecard, Map, Timeline, Slider, Reports, Campaign, Sheets) → `/assets/[id]` → `/review` → `/search` → `/verify` → `/story` → system pages.
-8. **Signature motion** (§9.1–9.3) last, behind the reduced-motion guard.
+8. **Signature motion** (§9.1 to 9.3) last, behind the reduced-motion guard.
 9. **Verify:** `npm run typecheck && npm run lint && npm test`, then `npm run seed` plus a full walk-through in the browser in both themes and at 375px. `npm run check-demo` must still PASS.
 
 ### 14.6 Out of scope (do not touch)
@@ -1645,3 +1646,7 @@ Deliberately not done: `next build` was not run (a dev server was already using 
 | Empty states | `SampleSheet` (extracted from the landing hero) shows an illustrative roll that develops from blue to colour: dashboard hero, upload grid, review ("all clear" mode). `EmptyState` gained a `visual` slot. Search, project and report empty states keep the plain restyled panel. |
 | Dashes | Every em and en dash removed from `app`, `components`, `lib` and this file. Empty values read `n/a`. `lib/trust.ts` LOW_CONFIDENCE reason now reads "...; needs a human look" (CLAUDE.md 7.2 quotes the old wording). |
 | Motion | `.reveal` on `Section` headings, CSS only, `@supports (animation-timeline: view())`, off under reduced motion. |
+
+**Third pass (explainer).** The four-column "How a photo becomes evidence" row on the empty dashboard is replaced by the
+Darkroom filmstrip (8.1). `Qr` moved out of `StoryStage.tsx` into `components/landing/Qr.tsx` so both share it. A grid
+item holding a horizontally scrolling track needs `min-w-0` and a `minmax(0,1fr)` column, or it widens the whole page.

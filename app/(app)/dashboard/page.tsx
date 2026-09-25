@@ -2,6 +2,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import ProjectForm from "@/components/ProjectForm"
 import CustodyFunnel from "@/components/CustodyFunnel"
+import DarkroomStrip from "@/components/DarkroomStrip"
 import ContactSheet from "@/components/ContactSheet"
 import TrustBadge from "@/components/TrustBadge"
 import { TileImage } from "@/components/EvidenceTile"
@@ -30,13 +31,6 @@ type Row = {
   taken_at: string | null; created_at: string; resource_type: string; status: string; parent_asset_id: string | null
   trust_score: number | null; trust_flags: Flag[] | null; review_status: string
 }
-
-const PIPELINE = [
-  ["01", "Upload", "Photos and video with GPS and time, read before they leave the device."],
-  ["02", "Analyze", "Tags, a caption and six visual signals, cached so nothing is paid for twice."],
-  ["03", "Score", "A trust score with plain-language reasons, and a human review queue."],
-  ["04", "Prove", "A PDF with a QR code that anyone can scan to verify."],
-]
 
 export default async function Dashboard() {
   const [{ data: projectRows }, { data: assetRows }, { data: reportRows }] = await Promise.all([
@@ -98,15 +92,7 @@ export default async function Dashboard() {
 
       {stats.total === 0 ? (
         <Section eyebrow="Get started" title="How a photo becomes evidence">
-          <ol className="grid list-none grid-cols-1 border-t border-line p-0 md:grid-cols-4">
-            {PIPELINE.map(([n, t, d]) => (
-              <li key={n} className="grid content-start gap-1.5 border-b border-line py-4 md:border-b-0 md:border-l md:px-5 md:first:border-l-0 md:first:pl-0">
-                <span className="text-eyebrow">{n}</span>
-                <span className="text-title">{t}</span>
-                <span className="text-small">{d}</span>
-              </li>
-            ))}
-          </ol>
+          <DarkroomStrip />
         </Section>
       ) : (
         <>
