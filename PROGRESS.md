@@ -6,7 +6,7 @@
 | 1 Upload & storage | Done, awaiting user OK | Own multi-file input (not the Cloudinary widget) + exifr on the real `File` + direct signed upload (`phash: true` in the signed params) + `/api/assets` + `/upload` grid. Verified end-to-end in the browser with generated fixtures (GPS+time, no-EXIF, oversized and .gif rejected); test data removed. |
 | 2 AI analysis | Done, awaiting user OK | Cache-first pipeline: Gemini (caption + 6 signals + 3 moderation checks, one call) -> AI Vision tagging (1 call, 10 tags) -> embedding (768d). `garbage_present`/`vegetation` derived from signals. Exact duplicates copy the twin (0 calls). Progress panel on `/upload`, retry route. Verified on 4 test images (+ cache re-run = 0 calls, LOW_CONFIDENCE path); test data removed. |
 | 3 Projects, map, timeline | Done, awaiting user OK | `lib/geo.ts` (haversine + greedy clustering, 9 vitest tests), project create/edit/assign APIs, dashboard with auto suggestions, project page with Leaflet map (geofence circle, pins red/green) + timeline by day (IST). Verified in browser with 10 generated EXIF photos; test data removed. No AI credits used. |
-| 4 Trust score | Not started | |
+| 4 Trust score | Done, awaiting user OK | `lib/trust.ts` + `lib/phash.ts` pure, 32 vitest tests total. Trust recomputed on upload, after analysis, and on project/assignment changes (`lib/trust-db.ts`); badges on grids, `/assets/[id]` with flag reasons + traceability, `/review` queue (approve/reject/undo). Verified live with 16 planted assets; all test data removed. 1 AI Vision call used (the screen photo). |
 | 5 Search | Not started | |
 | 6 Before/after + scorecard | Not started | |
 | 7 Reports + QR | Not started | |
@@ -25,3 +25,6 @@
 - Order inside `analyzeAsset`: Gemini (free) first, then AI Vision (paid), so a broken Gemini step never burns Vision units.
 - Only images are analyzed in Phase 2; videos stay `pending` until Phase 9.
 - Phase 3: times are grouped/displayed in IST (`lib/dates.ts`). Suggestions need 3+ GPS photos within 500 m and 60 days; unassigned photos without GPS are assigned manually from a project page.
+- Phase 4: trust is computed for pending assets too (dup/geofence/time need no AI); AI-derived flags (PHOTO_OF_PHOTO, IRRELEVANT, LOW_CONFIDENCE) appear after analysis. Only the LATER upload of a duplicate pair is penalised. pHash threshold stays at spec (<=6): a heavily shrunk+recompressed synthetic image hit distance 8, a realistic WhatsApp-style recompress of a natural photo hit 0.
+- `/api/analyze/next` accepts optional `ids` to analyse specific assets only (used by the asset page button) — use it in tests to save AI Vision units.
+- AI Vision after Phase 4 testing: ~96,250 units remaining (one more ~650 call).

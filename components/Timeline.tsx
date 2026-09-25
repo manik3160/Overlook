@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { thumbUrl } from "@/lib/cloudinary-url"
 
 export type TimelineItem = { id: string; secure_url: string; resource_type: string; time: string; approx: boolean }
@@ -13,8 +14,10 @@ export default function Timeline({ days }: { days: TimelineDay[] }) {
           <div className="font-medium">{d.label} ({d.items.length})</div>
           <div className="flex flex-wrap gap-1">
             {d.items.map((it) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={it.id} src={thumbUrl(it.secure_url, it.resource_type)} alt="" width={56} height={56} title={it.approx ? "no photo time, using upload time" : it.time} />
+              <Link key={it.id} href={`/assets/${it.id}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={thumbUrl(it.secure_url, it.resource_type)} alt="" width={56} height={56} title={it.approx ? "no photo time, using upload time" : it.time} />
+              </Link>
             ))}
           </div>
         </li>

@@ -12,8 +12,8 @@ import type { Project } from "@/lib/project-schema"
 
 export const dynamic = "force-dynamic"
 
-type A = { id: string; public_id: string; secure_url: string; resource_type: string; lat: number | null; lng: number | null; taken_at: string | null; created_at: string }
-const COLS = "id, public_id, secure_url, resource_type, lat, lng, taken_at, created_at"
+type A = { trust_score: number | null; id: string; public_id: string; secure_url: string; resource_type: string; lat: number | null; lng: number | null; taken_at: string | null; created_at: string }
+const COLS = "trust_score, id, public_id, secure_url, resource_type, lat, lng, taken_at, created_at"
 
 export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params
@@ -77,7 +77,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
 
       <section className="space-y-2">
         <h2 className="text-lg font-medium">Assigned photos</h2>
-        <AssetPicker projectId={id} action="unassign" buttonLabel="Remove from project" assets={assets.map((a) => ({ id: a.id, thumb: thumbUrl(a.secure_url, a.resource_type), label: distance(a) === null ? "no GPS" : `${Math.round(distance(a)!)} m from center` }))} />
+        <AssetPicker projectId={id} action="unassign" buttonLabel="Remove from project" assets={assets.map((a) => ({ score: a.trust_score, id: a.id, thumb: thumbUrl(a.secure_url, a.resource_type), label: distance(a) === null ? "no GPS" : `${Math.round(distance(a)!)} m from center` }))} />
       </section>
 
       <section className="space-y-2">

@@ -6,20 +6,22 @@ import { RateLimitError } from "@/lib/errors"
 
 export const maxDuration = 60
 
-const bodySchema = z.object({ limit: z.number().int().min(1).max(5).default(2) })
+const bodySchema = z.object({ limit: z.number().int().min(1).max(5).default(2), ids: z.array(z.string().uuid()).optional() })
 
 // Processes up to `limit` pending images (sequentially) and reports progress. The UI polls this.
 export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})))
   if (!parsed.success) return NextResponse.json({ error: "limit must be 1-5" }, { status: 400 })
 
-  const { data: pending, error } = await supabase
+  let query = supabase
     .from("assets")
     .select("id, public_id, secure_url, etag")
     .eq("status", "pending")
     .eq("resource_type", "image")
     .order("created_at", { ascending: true })
     .limit(parsed.data.limit)
+  if (parsed.data.ids) query = query.in("id", parsed.data.ids) // analyse only these (saves credits)
+  const { data: pending, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const results: { id: string; public_id: string; status: string; error?: string; apiCalls: number }[] = []

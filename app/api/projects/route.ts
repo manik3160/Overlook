@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { recomputeTrust } from "@/lib/trust-db"
 import { createProjectSchema } from "@/lib/project-schema"
 
 export async function POST(request: Request) {
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
   if (asset_ids?.length) {
     const { error: assignError } = await supabase.from("assets").update({ project_id: project.id }).in("id", asset_ids).is("project_id", null)
     if (assignError) return NextResponse.json({ error: assignError.message }, { status: 500 })
+    await recomputeTrust(asset_ids)
   }
   return NextResponse.json({ project })
 }

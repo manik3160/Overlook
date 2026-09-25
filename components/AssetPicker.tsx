@@ -2,9 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import TrustBadge from "@/components/TrustBadge"
 
-export type PickerAsset = { id: string; thumb: string; label: string }
+export type PickerAsset = { id: string; thumb: string; label: string; score?: number | null }
 type Props = { projectId: string; action: "assign" | "unassign"; assets: PickerAsset[]; buttonLabel: string }
 
 export default function AssetPicker({ projectId, action, assets, buttonLabel }: Props) {
@@ -35,11 +37,14 @@ export default function AssetPicker({ projectId, action, assets, buttonLabel }: 
                 type="checkbox"
                 checked={selected.includes(a.id)}
                 onChange={(e) => setSelected((s) => (e.target.checked ? [...s, a.id] : s.filter((x) => x !== a.id)))}
-              />{" "}
+              /> select
+            </label>
+            <Link href={`/assets/${a.id}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={a.thumb} alt="" width={120} height={120} />
-              <div>{a.label}</div>
-            </label>
+            </Link>
+            <div>{a.label}</div>
+            {a.score !== undefined && <TrustBadge score={a.score} />}
           </li>
         ))}
       </ul>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { recomputeProjectTrust } from "@/lib/trust-db"
 import { updateProjectSchema } from "@/lib/project-schema"
 
 export async function PATCH(request: Request, ctx: RouteContext<"/api/projects/[id]">) {
@@ -10,5 +11,6 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/projects/[
   const { data, error } = await supabase.from("projects").update(parsed.data).eq("id", id).select().maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data) return NextResponse.json({ error: "Project not found" }, { status: 404 })
+  await recomputeProjectTrust(id) // geofence / dates may have changed
   return NextResponse.json({ project: data })
 }

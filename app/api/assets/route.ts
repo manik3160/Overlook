@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { supabase } from "@/lib/supabase"
+import { recomputeTrust } from "@/lib/trust-db"
 
 const bodySchema = z.object({
   public_id: z.string().min(1),
@@ -48,5 +49,6 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recomputeTrust([data.id])
   return NextResponse.json({ asset: data })
 }

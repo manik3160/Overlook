@@ -32,6 +32,7 @@ export default async function Home() {
       <header className="flex items-baseline gap-4">
         <h1 className="text-2xl font-semibold">Overlook</h1>
         <Link href="/upload" className="underline">Upload &amp; analyze</Link>
+        <Link href="/review" className="underline">Review queue</Link>
       </header>
 
       <section className="space-y-2">

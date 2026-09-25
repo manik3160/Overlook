@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase"
 import { cachedCall } from "@/lib/cache"
 import { analyzeImage, embedText, type GeminiAnalysis } from "@/lib/gemini"
 import { visionTag, type VisionTags } from "@/lib/vision"
+import { recomputeTrust } from "@/lib/trust-db"
 
 export type AssetRow = { id: string; public_id: string; secure_url: string; etag: string | null }
 export type AnalysisOutcome = { status: "done" | "failed"; error?: string; apiCalls: number; copiedFrom?: string }
@@ -10,13 +11,6 @@ export type Counts = { total: number; pending: number; analyzing: number; done: 
 
 // Small delivery copy of the image: cheaper to send to the AI providers than the original.
 const smallUrl = (secureUrl: string) => secureUrl.replace("/upload/", "/upload/c_limit,w_1024,h_1024,f_jpg,q_auto/")
-
-const LOW_CONFIDENCE_FLAG = {
-  code: "LOW_CONFIDENCE",
-  severity: "info",
-  reason: "couldn't confidently classify this image — needs a human look",
-  evidence: {},
-}
 
 export async function getCounts(): Promise<Counts> {
   const { data } = await supabase.from("assets").select("status").eq("resource_type", "image")
@@ -33,7 +27,7 @@ async function copyFromTwin(asset: AssetRow): Promise<string | null> {
   if (!asset.etag) return null
   const { data: twin } = await supabase
     .from("assets")
-    .select("id, tags, caption, signals, embedding, trust_flags")
+    .select("id, tags, caption, signals, embedding")
     .eq("etag", asset.etag)
     .eq("status", "done")
     .neq("id", asset.id)
@@ -42,7 +36,7 @@ async function copyFromTwin(asset: AssetRow): Promise<string | null> {
   if (!twin) return null
   const { error } = await supabase
     .from("assets")
-    .update({ tags: twin.tags, caption: twin.caption, signals: twin.signals, embedding: twin.embedding, trust_flags: twin.trust_flags, status: "done" })
+    .update({ tags: twin.tags, caption: twin.caption, signals: twin.signals, embedding: twin.embedding, status: "done" })
     .eq("id", asset.id)
   if (error) throw new Error(error.message)
   return twin.id as string
@@ -58,7 +52,10 @@ export async function analyzeAsset(asset: AssetRow): Promise<AnalysisOutcome> {
   let apiCalls = 0
   try {
     const twinId = await copyFromTwin(asset)
-    if (twinId) return { status: "done", apiCalls: 0, copiedFrom: twinId }
+    if (twinId) {
+      await recomputeTrust([asset.id])
+      return { status: "done", apiCalls: 0, copiedFrom: twinId }
+    }
 
     const url = smallUrl(asset.secure_url)
 
@@ -90,11 +87,11 @@ export async function analyzeAsset(asset: AssetRow): Promise<AnalysisOutcome> {
         caption,
         signals,
         embedding: embedding ? JSON.stringify(embedding) : null,
-        trust_flags: tags.size === 0 || !caption ? [LOW_CONFIDENCE_FLAG] : [],
         status: "done",
       })
       .eq("id", asset.id)
     if (error) throw new Error(error.message)
+    await recomputeTrust([asset.id])
     return { status: "done", apiCalls }
   } catch (err) {
     if (err instanceof Error && err.name === "RateLimitError") throw err

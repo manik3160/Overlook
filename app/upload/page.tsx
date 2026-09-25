@@ -3,6 +3,8 @@ import AnalysisPanel from "@/components/AnalysisPanel"
 import { getCounts } from "@/lib/analysis"
 import { supabase } from "@/lib/supabase"
 import { thumbUrl } from "@/lib/cloudinary-url"
+import TrustBadge from "@/components/TrustBadge"
+import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
@@ -17,6 +19,8 @@ type AssetRow = {
   has_exif: boolean
   status: string
   tags: string[] | null
+  trust_score: number | null
+  review_status: string
   caption: string | null
 }
 
@@ -31,7 +35,7 @@ function exifBadge(a: AssetRow): string {
 export default async function UploadPage() {
   const { data, error } = await supabase
     .from("assets")
-    .select("id, public_id, resource_type, secure_url, taken_at, lat, lng, has_exif, status, tags, caption")
+    .select("id, public_id, resource_type, secure_url, taken_at, lat, lng, has_exif, status, tags, caption, trust_score, review_status")
     .order("created_at", { ascending: false })
     .limit(200)
   const assets = (data ?? []) as AssetRow[]
@@ -47,8 +51,11 @@ export default async function UploadPage() {
       <ul className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {assets.map((a) => (
           <li key={a.id} className="space-y-1 text-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={thumbUrl(a.secure_url, a.resource_type)} alt={a.public_id} width={240} height={240} />
+            <Link href={`/assets/${a.id}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={thumbUrl(a.secure_url, a.resource_type)} alt={a.public_id} width={240} height={240} />
+            </Link>
+            <TrustBadge score={a.trust_score} reviewStatus={a.review_status} />
             <div className="font-medium">{exifBadge(a)}</div>
             <div>{a.resource_type} · {a.status}</div>
             {a.tags && a.tags.length > 0 && <div>{a.tags.join(", ")}</div>}
