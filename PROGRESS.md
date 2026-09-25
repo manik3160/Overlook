@@ -7,7 +7,7 @@
 | 2 AI analysis | Done, awaiting user OK | Cache-first pipeline: Gemini (caption + 6 signals + 3 moderation checks, one call) -> AI Vision tagging (1 call, 10 tags) -> embedding (768d). `garbage_present`/`vegetation` derived from signals. Exact duplicates copy the twin (0 calls). Progress panel on `/upload`, retry route. Verified on 4 test images (+ cache re-run = 0 calls, LOW_CONFIDENCE path); test data removed. |
 | 3 Projects, map, timeline | Done, awaiting user OK | `lib/geo.ts` (haversine + greedy clustering, 9 vitest tests), project create/edit/assign APIs, dashboard with auto suggestions, project page with Leaflet map (geofence circle, pins red/green) + timeline by day (IST). Verified in browser with 10 generated EXIF photos; test data removed. No AI credits used. |
 | 4 Trust score | Done, awaiting user OK | `lib/trust.ts` + `lib/phash.ts` pure, 32 vitest tests total. Trust recomputed on upload, after analysis, and on project/assignment changes (`lib/trust-db.ts`); badges on grids, `/assets/[id]` with flag reasons + traceability, `/review` queue (approve/reject/undo). Verified live with 16 planted assets; all test data removed. 1 AI Vision call used (the screen photo). |
-| 5 Search | Not started | |
+| 5 Search | Done, awaiting user OK | `/search`: query -> Gemini embedding (in-memory cache) -> `match_assets`, plus project/tag/trust band/date/type filters (filter-only mode when no query). Relevance cutoff = absolute floor 0.75 + 0.06 below best (calibrated: gemini-embedding-001 has a ~0.7 baseline). Verified on 6 real public-domain photos with 8 queries + every filter alone and combined; test data removed. No AI Vision units used. |
 | 6 Before/after + scorecard | Not started | |
 | 7 Reports + QR | Not started | |
 | 8 Campaign + story | Not started | |
@@ -28,3 +28,4 @@
 - Phase 4: trust is computed for pending assets too (dup/geofence/time need no AI); AI-derived flags (PHOTO_OF_PHOTO, IRRELEVANT, LOW_CONFIDENCE) appear after analysis. Only the LATER upload of a duplicate pair is penalised. pHash threshold stays at spec (<=6): a heavily shrunk+recompressed synthetic image hit distance 8, a realistic WhatsApp-style recompress of a natural photo hit 0.
 - `/api/analyze/next` accepts optional `ids` to analyse specific assets only (used by the asset page button) — use it in tests to save AI Vision units.
 - AI Vision after Phase 4 testing: ~96,250 units remaining (one more ~650 call).
+- Phase 5: keep SEMANTIC_SIMILARITY for both docs and queries (RETRIEVAL_* modes separated worse in a local test). Only ANALYSED photos have embeddings, so un-analysed photos cannot be found by description (tags/filters still work). Search fetches top 100 candidates then filters, fine at demo scale. Transcript search comes in Phase 9.
