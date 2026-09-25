@@ -48,6 +48,7 @@ export default async function UploadPage() {
       <AnalysisPanel initial={counts} />
       {error && <p>Could not load assets: {error.message}</p>}
       <p>{assets.length} assets</p>
+      {assets.length === 0 && !error && <p className="text-sm">No uploads yet. Choose photos or videos above (images up to 15 MB, videos up to 100 MB); location and time are read from the file before it uploads.</p>}
       <ul className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {assets.map((a) => (
           <li key={a.id} className="space-y-1 text-sm">

@@ -24,6 +24,7 @@ export async function loadEvidence(projectId: string): Promise<{ rows: EvidenceR
     .map((a): EvidenceRow => ({
       ...a,
       time: a.taken_at ? Date.parse(a.taken_at) : null,
+      outsideTimeframe: ((a.trust_flags ?? []) as { code: string }[]).some((f) => f.code === "OUTSIDE_TIMEFRAME"),
       signals: (a.signals ?? null) as Signals | null,
       embedding: parseVector(a.embedding),
     }))

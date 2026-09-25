@@ -1,36 +1,206 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Overlook
 
-## Getting Started
+**An AI evidence platform for NGOs, CSR teams and government field projects.** It turns raw field photos and
+videos into **verified, searchable, measurable** impact evidence, and tells you when a photo needs a second look.
 
-First, run the development server:
+Most tools build a smart photo gallery. Overlook builds an **evidence system**:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- every photo gets a **Trust Score** with plain-language reasons (duplicate, re-used, wrong place, wrong date, photo of a screen, no metadata);
+- every number in a report **links to the photos behind it**;
+- every report carries a **QR code** that opens a public page which recomputes the report's SHA-256 and says whether it was altered.
+
+Built for Code Cubicle 6.0 (Problem Statement 02, Cloudinary track).
+
+> Wording rule used everywhere in the UI: a photo is **"flagged for review"**, never called fake or fraud. Humans decide in `/review`.
+
+---
+
+## What it does
+
+| Area | What you get |
+|---|---|
+| Upload | Multi-file photo and video upload, signed and direct to Cloudinary. Location and time are read in the browser first (photo EXIF, and MP4/MOV atoms for video). Size limits are enforced before upload. |
+| Analysis | One click runs a cached pipeline per photo: Gemini (caption, 6 visual signals, 3 checks) then Cloudinary AI Vision (taxonomy tags) then an embedding. Nothing is ever paid for twice. |
+| Trust | Score 0-100 with explainable flags, a review queue (approve / reject) and an asset page with the evidence. |
+| Projects | Auto-suggested projects (GPS + time clustering), map with geofence, timeline, manual assignment. |
+| Search | Describe what you want ("garbage near the road"); semantic search plus filters (project, tag, trust, date, type) and exact-word transcript search for videos. |
+| Impact | Before/after pairing with a slider and an AI change summary, and an Impact Scorecard whose every number is clickable. |
+| Reports | Donor / CSR PDF (scorecard, pairs, evidence table, QR) plus a public verification page. |
+| Campaign | Instagram, story and **Hindi** WhatsApp cards (faces pixelated) and a public impact-story page built only from verified evidence. |
+| Video | Transcript (Gemini), key frames every ~15 s as analyzable assets, frame-to-exact-second links, searchable spoken words. |
+
+## Problem statement to feature map
+
+| PS requirement | Feature | Where |
+|---|---|---|
+| Analyze and organize **large collections** of image **and video** | Direct-to-Cloudinary upload, background analysis with progress, cache-first AI, video key frames | `/upload`, `lib/analysis.ts`, `lib/video-processing.ts` |
+| Organize by **project, location, timeline** | Auto project suggestions, map, timeline | `/`, `/projects/[id]`, `lib/geo.ts` |
+| Identify projects, activities, locations, **visual signals** | Taxonomy tags, countable visual signals, EXIF/video GPS | `lib/taxonomy.ts`, `lib/gemini.ts`, `lib/exif.ts`, `lib/mp4meta.ts` |
+| **Verifying** / reliable insights | Evidence Trust Score + review queue | `lib/trust.ts`, `/review`, `/assets/[id]` |
+| Searchable via AI metadata, tags, **semantic discovery** | Embeddings + tag/trust/date filters + transcript search | `/search`, `lib/search.ts` |
+| Compare **before and after** | Auto pairing, slider, AI change summary | `lib/pairing.ts`, `components/BeforeAfterSlider.tsx` |
+| **Measurable impact** | Impact Scorecard, every number links to its photos | `lib/signals.ts`, `/projects/[id]/evidence` |
+| Visual reports and summaries | PDF report | `lib/report-pdf.tsx` |
+| **Traceability** to originals **and transformations** | Manifest with `public_id`, original + transformation URLs, SHA-256, QR to a public verify page | `lib/manifest.ts`, `/verify/[reportId]` |
+| Campaign-ready content, **impact stories** | Social cards, Hindi card, story page | `lib/cards.ts`, `/story/[projectId]` |
+
+## Architecture
+
+One Next.js app. No separate backend, queue or state library.
+
+```mermaid
+flowchart LR
+  subgraph Browser
+    UI[Next.js pages<br/>upload · projects · search · review]
+    EXIF[exifr + MP4 reader<br/>time and GPS before upload]
+  end
+  subgraph App[Next.js route handlers + lib/]
+    SIGN[/api/sign-cloudinary-params/]
+    ASSETS[/api/assets/]
+    ANALYZE[/api/analyze/next<br/>cache-first pipeline/]
+    TRUST[lib/trust.ts<br/>pure, tested]
+    REPORT[/api/projects/id/reports<br/>manifest + SHA-256 + PDF/]
+    STORY[/api/projects/id/story/]
+  end
+  CLD[(Cloudinary<br/>storage · AI Vision · transformations)]
+  DB[(Supabase Postgres<br/>+ pgvector)]
+  GEM[Gemini<br/>vision · audio · embeddings]
+
+  UI --> EXIF --> SIGN --> CLD
+  UI --> ASSETS --> DB
+  UI --> ANALYZE --> GEM
+  ANALYZE --> CLD
+  ANALYZE --> DB
+  ANALYZE --> TRUST --> DB
+  UI --> REPORT --> DB
+  REPORT --> CLD
+  UI --> STORY --> GEM
+  STORY --> DB
+  VERIFY[/verify/id · public page/] --> DB
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Analysis pipeline** (per photo, every step cached in the `analyses` table, never billed twice):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+upload -> assets(pending) -> Gemini (caption + signals + checks) -> AI Vision (tags) -> embedding -> trust score -> done
+                               exact duplicate (same etag)? copy the twin, zero AI calls
+video  -> key frames (real image assets) + Gemini transcript + summary -> frames go through the same pipeline
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Setup
 
-## Learn More
+You need Node 20+, and free accounts on **Supabase**, **Cloudinary** and **Google AI Studio (Gemini)**.
 
-To learn more about Next.js, take a look at the following resources:
+1. **Install**
+   ```bash
+   npm install
+   cp .env.example .env.local      # then fill it in (table below)
+   ```
+2. **Supabase**: create a project, then run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) in the
+   SQL Editor (or with the Supabase CLI). It creates the tables, enables pgvector and adds the `match_assets` search function.
+3. **Cloudinary**
+   - Console, Add-ons: subscribe to **Cloudinary AI Vision**.
+   - Settings, Upload, Upload presets: add a preset with **Signing mode = Signed**; its name goes in `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`.
+   - Upload the Hindi font once (needed for the Hindi campaign card): `npm run upload-font`.
+4. **Gemini**: create an API key at Google AI Studio.
+5. **Run**
+   ```bash
+   npm run dev          # http://localhost:3000
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Environment variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Variable | Notes |
+|---|---|
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary dashboard |
+| `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | server only |
+| `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` | name of the **signed** preset |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | server only, never import it in a client component |
+| `GEMINI_API_KEY` | server only |
+| `GEMINI_VISION_MODEL` | optional; defaults to `gemini-3.1-flash-lite` (see quotas below) |
+| `NEXT_PUBLIC_APP_URL` | used for the QR code inside reports. **It is baked in at build time**, so for a real phone scan set it to a URL the phone can reach *before* building |
 
-## Deploy on Vercel
+## Try the demo
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Rehearsal data (public Cloudinary sample images, **not** real field photos) with the planted problems:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev                       # terminal 1
+npm run seed                      # terminal 2: 14 photos, 2 projects, 6 planted problems
+npm run seed -- --reset           # wipe demo data and seed again
+npm run seed -- --unassigned      # skip projects, to demo the auto-suggestion flow
+npm run check-demo                # reset, seed and verify the whole flow (PASS/FAIL per step)
+```
+
+The seed fabricates captions and signals for these sample images and stores them in the same analysis cache the real
+pipeline uses, so **Analyze** finishes in seconds and spends no AI Vision units. Demo photos live under
+`evidence/demo/` and projects end in "(demo)". For the real demo, upload your own geotagged photos and let the AI run.
+
+Walk-through (matches CLAUDE.md section 10):
+
+1. **Dashboard** shows the landing numbers and the suggested projects. **/upload**: upload, then press **Analyze**.
+2. **/review**: the planted problems are flagged with reasons (exact duplicate, re-used copy, far away, wrong date, no metadata, photo of a screen).
+3. **Project page**: scorecard (every number is a link), map, timeline, **Find before/after pairs** (slider + AI summary).
+4. **Generate donor PDF**. Scan the QR (or open the verification page): it shows the hash check and traces every photo to its original.
+5. **Campaign cards** (Instagram, story, Hindi) and **Generate impact story**, then open the public story page.
+
+## Trust score (`lib/trust.ts`)
+
+Start at 100 and subtract; clamp to 0-100. **Verified** 80+, **Needs review** 50-79, **Suspicious** under 50.
+
+| Check | Deduction | Flag |
+|---|---|---|
+| Same file as an earlier upload (`etag`) | -50 | `DUPLICATE_EXACT` |
+| Near-identical image (perceptual hash distance 6 or less) to an earlier upload | -40 | `DUPLICATE_REUSED` |
+| Photo of a screen or printed photo (AI) | -35 | `PHOTO_OF_PHOTO` |
+| Outside the project's geofence | -25 | `OUTSIDE_GEOFENCE` |
+| Taken more than 7 days outside the project dates | -15 | `OUTSIDE_TIMEFRAME` |
+| Unrelated to field work (AI) | -10 | `IRRELEVANT` |
+| No location or time metadata | capped at 60 | `NO_METADATA` (informational) |
+
+Only the *later* upload of a duplicate pair is penalized, and frames of the same video never flag each other.
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` / `build` / `start` | Next.js |
+| `npm test` | Unit tests for the pure logic (trust, pHash, geo, pairing, scorecard, manifest hashing, cards, story, video, MP4 metadata, stats) |
+| `npm run typecheck` / `npm run lint` | TypeScript and ESLint |
+| `npm run try-ai-vision` | Tags one public image with AI Vision to prove credentials and the add-on work |
+| `npm run upload-font` | One-time Hindi font upload to Cloudinary |
+| `npm run seed` / `npm run check-demo` | Demo data and the end-to-end rehearsal check (need `npm run dev` running) |
+
+## Known limitations and quotas (please read)
+
+- **Gemini free tier is per model per day.** `gemini-3.6-flash` allows only **20 requests/day** on a free key, so the default is
+  `gemini-3.1-flash-lite`. If you see a "PerDay" 429, switch the model with `GEMINI_VISION_MODEL`. The analysis panel waits 30 s and retries on short-term limits.
+- **AI Vision units are limited** (100,000 on the free plan; about **650 per photo**). The pipeline makes one call per photo and caches it. A 2-minute video with 8 frames costs about 5,200 units.
+- **New Cloudinary accounts block public PDF delivery.** The app streams report PDFs through `/api/reports/[id]/pdf` using a signed URL, so it works without changing account settings.
+- **Search relevance is a heuristic.** Gemini embeddings score everything about 0.7+, so results must clear a floor (0.78) and sit within 0.06 of the best match. Retune `MIN_SIMILARITY` in `lib/search.ts` on your real photos.
+- **A flagged photo can still read "Verified"** (for example only 15 points off for a wrong date). It still appears in the review queue because it has a flag.
+- **Only analyzed photos are found by description.** Un-analyzed photos can still be found by filters.
+- **Video metadata** is read from MP4/MOV atoms (time, and GPS from Android/QuickTime `©xyz` or iPhone `meta` keys). WebM and files without those atoms show "no metadata".
+- **Spoken numbers** come back from the transcript as digits ("40 bags"), so keyword search needs "40"; semantic search still works.
+- **No authentication.** It is a single demo workspace; anyone with the link can use the app. The verification and story pages are meant to be public.
+- Report and card images pixelate faces; the verification page's "Original" links point at the untouched originals (needed for traceability).
+
+## Deploying (not done yet)
+
+Vercel-ready, but the deploy was intentionally left for later. Checklist: add every variable above to the Vercel project,
+set `NEXT_PUBLIC_APP_URL` to the production URL **before** the build (it feeds the QR code), run the Supabase migration on the
+production database, run `npm run upload-font` once, then scan a generated report's QR with a phone. Report generation can take
+up to a minute, so keep the function timeout at 60 s or more.
+
+## Project layout
+
+```
+app/            pages and API route handlers (one folder per action)
+components/     presentational UI (no business logic)
+lib/            plain functions: trust, geo, pairing, signals, manifest, cards, story, video, mp4meta, search, analysis...
+scripts/        try-ai-vision, upload-font, seed-demo, check-demo-flow, demo-assets/
+supabase/       SQL migration
+PROGRESS.md     phase-by-phase build log
+CLAUDE.md       the plan this project was built against
+```

@@ -12,6 +12,7 @@ export type ScoreAsset = {
   signals: Signals | null
   trust_score: number | null
   review_status: string
+  outsideTimeframe?: boolean // flagged OUTSIDE_TIMEFRAME: never used to decide where "before" ends and "after" begins
 }
 export type MetricKey = "garbage_visible" | "vegetation_dense" | "water_present" | "structure_complete" | "people_working" | "safety_gear"
 export type PhaseSet = "before" | "after" | "all"
@@ -36,7 +37,8 @@ export type Phases = { before: Set<string>; after: Set<string>; gapDays: number;
 
 // Split timed photos at the biggest gap between consecutive photos; null when no gap is >= minGapDays.
 export function splitPhases(assets: ScoreAsset[], minGapDays = MIN_PHASE_GAP_DAYS): Phases | null {
-  const timed = assets.filter((a) => a.time !== null).sort((x, y) => x.time! - y.time!)
+  // A photo already flagged as outside the project's dates must not define the phases (it would become a one-photo "before").
+  const timed = assets.filter((a) => a.time !== null && !a.outsideTimeframe).sort((x, y) => x.time! - y.time!)
   let cut = -1, widest = 0
   for (let i = 1; i < timed.length; i++) {
     const gap = timed[i].time! - timed[i - 1].time!

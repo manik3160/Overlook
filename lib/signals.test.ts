@@ -25,6 +25,14 @@ describe("splitPhases", () => {
     expect(splitPhases([a("x", 0), a("y", 2), a("z", 4)])).toBeNull()
     expect(splitPhases([a("x", 0)])).toBeNull()
   })
+  it("a photo flagged as outside the project's dates cannot define the phases (it would become a 1-photo 'before')", () => {
+    const withOutlier = [...cleanup, a("june", -92, sig(), { outsideTimeframe: true })]
+    const ph = splitPhases(withOutlier)!
+    expect([...ph.before].sort()).toEqual(["b1", "b2", "b3"])
+    expect(ph.before.has("june") || ph.after.has("june")).toBe(false)
+    expect(computeScorecard(withOutlier).rows[0].all.total).toBe(8) // still counted overall
+    expect(photosFor(withOutlier, "garbage_visible", "all", "total")).toContain("june")
+  })
   it("ignores photos without a time", () => {
     const ph = splitPhases([...cleanup, a("notime", null)])!
     expect(ph.before.has("notime") || ph.after.has("notime")).toBe(false)
