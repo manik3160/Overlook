@@ -24,7 +24,7 @@ Built for Code Cubicle 6.0 (Problem Statement 02, Cloudinary track).
 | Trust | Score 0-100 with explainable flags, a review queue (approve / reject) and an asset page with the evidence. |
 | Projects | Auto-suggested projects (GPS + time clustering), map with geofence, timeline, manual assignment. |
 | Search | Describe what you want ("garbage near the road"); semantic search plus filters (project, tag, trust, date, type) and exact-word transcript search for videos. |
-| Impact | Before/after pairing with a slider and an AI change summary, and an Impact Scorecard whose every number is clickable. |
+| Impact | Before/after pairing with a slider and an AI change summary, and an Impact Scorecard whose every number is clickable. Optional **satellite cross-check** (Sentinel-2, same season a year apart, precomputed with `npm run satellite -- <projectId>`): says whether the change seen from space is consistent with the claim, never that it proves it. |
 | Reports | Donor / CSR PDF (scorecard, pairs, evidence table, QR) plus a public verification page. |
 | Campaign | Instagram, story and **Hindi** WhatsApp cards (faces pixelated), a public impact-story page and a **highlight reel** video (Cloudinary splicing, crossfades), all built only from verified evidence. |
 | Video | Transcript (Gemini), key frames every ~15 s as analyzable assets, frame-to-exact-second links, searchable spoken words. |
