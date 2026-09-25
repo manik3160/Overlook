@@ -3,7 +3,8 @@ import { GoogleGenAI, ApiError, ThinkingLevel } from "@google/genai"
 import { z } from "zod"
 import { RateLimitError } from "@/lib/errors"
 
-const VISION_MODEL = "gemini-3.6-flash"
+// Free-tier daily quotas differ a lot per model (gemini-3.6-flash allows only 20 requests/day), so the default is a flash-lite model and it is configurable.
+const VISION_MODEL = process.env.GEMINI_VISION_MODEL || "gemini-3.1-flash-lite"
 const EMBED_MODEL = "gemini-embedding-001"
 export const EMBED_DIMS = 768
 
@@ -74,6 +75,24 @@ export async function embedText(text: string): Promise<number[]> {
     const values = res.embeddings?.[0]?.values
     if (!values || values.length !== EMBED_DIMS) throw new Error(`Embedding has ${values?.length} dims, expected ${EMBED_DIMS}`)
     return values
+  } catch (err) {
+    return rethrow(err)
+  }
+}
+
+const changeSchema = z.string().trim().min(10)
+
+// Factual before/after description for one pair of photos of the same place.
+export async function summarizeChange(beforeBase64: string, afterBase64: string, daysApart: number): Promise<string> {
+  const prompt = `The first image is a BEFORE photo and the second is an AFTER photo of the same place, taken ${daysApart} days apart during a community or environmental field project.
+In 2 to 3 short factual sentences, describe only what visibly changed (for example litter, vegetation, structures, water, people). Do not speculate about causes or effort. If nothing visible changed, say so. Plain text only.`
+  try {
+    const res = await ai.models.generateContent({
+      model: VISION_MODEL,
+      contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: beforeBase64 } }, { inlineData: { mimeType: "image/jpeg", data: afterBase64 } }] }],
+      config: { temperature: 0, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
+    })
+    return changeSchema.parse(res.text)
   } catch (err) {
     return rethrow(err)
   }

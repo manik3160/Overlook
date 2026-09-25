@@ -4,6 +4,11 @@ import ProjectForm from "@/components/ProjectForm"
 import ProjectMap from "@/components/ProjectMapLoader"
 import Timeline, { type TimelineDay } from "@/components/Timeline"
 import AssetPicker from "@/components/AssetPicker"
+import Scorecard from "@/components/Scorecard"
+import PairsPanel, { type PairView } from "@/components/PairsPanel"
+import { loadEvidence } from "@/lib/project-data"
+import { computeScorecard } from "@/lib/signals"
+import { slideUrl } from "@/lib/cloudinary-url"
 import { supabase } from "@/lib/supabase"
 import { haversineM } from "@/lib/geo"
 import { dayKey, formatDay, formatTime } from "@/lib/dates"
@@ -25,6 +30,15 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
     supabase.from("assets").select(COLS).is("project_id", null).order("created_at", { ascending: false }).limit(200),
   ])
   const assets = (mine ?? []) as A[]
+  const { rows: evidence, rejected } = await loadEvidence(id)
+  const scorecard = computeScorecard(evidence)
+  const { data: pairRows } = await supabase.from("pairs").select("id, before_asset_id, after_asset_id, distance_m, days_apart, change_summary").eq("project_id", id).order("created_at")
+  const byId = new Map(evidence.map((e) => [e.id, e]))
+  const pairs: PairView[] = (pairRows ?? []).flatMap((p) => {
+    const b = byId.get(p.before_asset_id), a = byId.get(p.after_asset_id)
+    if (!b || !a) return []
+    return [{ id: p.id, beforeId: b.id, afterId: a.id, beforeUrl: slideUrl(b.secure_url), afterUrl: slideUrl(a.secure_url), beforeLabel: formatDay(b.taken_at ?? b.created_at), afterLabel: formatDay(a.taken_at ?? a.created_at), distanceM: p.distance_m, daysApart: p.days_apart, summary: p.change_summary }]
+  })
   const center = project.center_lat !== null && project.center_lng !== null ? { lat: project.center_lat, lng: project.center_lng } : null
   const radius = project.radius_m ?? 500
   const distance = (a: A) => (center && a.lat !== null && a.lng !== null ? haversineM(center, { lat: a.lat, lng: a.lng }) : null)
@@ -64,6 +78,16 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
         </p>
         {outside > 0 && <p className="text-sm">{outside} photo(s) are outside the geofence (shown red, flagged for review in Phase 4).</p>}
       </header>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-medium">Impact scorecard</h2>
+        <Scorecard projectId={id} sc={scorecard} rejected={rejected} />
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-medium">Before / after</h2>
+        <PairsPanel projectId={id} pairs={pairs} />
+      </section>
 
       <section className="space-y-2">
         <h2 className="text-lg font-medium">Map</h2>

@@ -3,3 +3,6 @@ export function thumbUrl(secureUrl: string, resourceType: string): string {
   const url = secureUrl.replace("/upload/", "/upload/c_fill,w_240,h_240,f_auto,q_auto/")
   return resourceType === "video" ? url.replace(/\.[a-z0-9]+$/i, ".jpg") : url
 }
+
+// Same crop for before and after so the slider lines up.
+export const slideUrl = (secureUrl: string) => secureUrl.replace("/upload/", "/upload/c_fill,w_800,h_600,f_auto,q_auto/")
