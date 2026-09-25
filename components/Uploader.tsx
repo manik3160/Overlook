@@ -11,6 +11,9 @@ const MAX_VIDEO_BYTES = 100 * 1024 * 1024
 const IMAGE_EXT = ["jpg", "jpeg", "png", "webp", "heic", "heif"]
 const VIDEO_EXT = ["mp4", "mov", "webm"]
 const ACCEPT = [...IMAGE_EXT, ...VIDEO_EXT].map((e) => `.${e}`).join(",")
+const PARALLEL_UPLOADS = 3
+// Fired on window when a batch finishes, so the analysis panel can refresh its counts (and auto-start).
+export const UPLOADED_EVENT = "overlook:uploaded"
 
 type Row = { name: string; state: "queued" | "uploading" | "done" | "rejected" | "failed"; note?: string; meta?: string }
 
@@ -79,46 +82,61 @@ export default function Uploader() {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
   }
 
+  async function uploadOne(i: number, file: File) {
+    update(i, { state: "uploading" })
+    try {
+      const exif = await readExif(file)
+      update(i, { meta: metaLabel(exif) })
+      const up = await uploadToCloudinary(file)
+      const save = await fetch("/api/assets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          public_id: up.public_id,
+          asset_id: up.asset_id,
+          resource_type: up.resource_type === "video" ? "video" : "image",
+          secure_url: up.secure_url,
+          etag: up.etag,
+          phash: up.phash ?? null,
+          width: up.width,
+          height: up.height,
+          taken_at: exif.takenAt,
+          lat: exif.lat,
+          lng: exif.lng,
+          has_exif: exif.hasExif,
+        }),
+      })
+      if (!save.ok) throw new Error((await save.json()).error ?? "saving failed")
+      update(i, { state: "done" })
+      return true
+    } catch (err) {
+      update(i, { state: "failed", note: err instanceof Error ? err.message : String(err) })
+      return false
+    }
+  }
+
   async function handleFiles(files: File[]) {
     setCollapsed(false)
     setBusy(true)
     setRows(files.map((f) => ({ name: f.name, state: "queued" })))
-    for (const [i, file] of files.entries()) {
+    const valid: number[] = []
+    files.forEach((file, i) => {
       const problem = validate(file)
-      if (problem) {
-        update(i, { state: "rejected", note: problem })
-        continue
-      }
-      update(i, { state: "uploading" })
-      try {
-        const exif = await readExif(file)
-        update(i, { meta: metaLabel(exif) })
-        const up = await uploadToCloudinary(file)
-        const save = await fetch("/api/assets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            public_id: up.public_id,
-            asset_id: up.asset_id,
-            resource_type: up.resource_type === "video" ? "video" : "image",
-            secure_url: up.secure_url,
-            etag: up.etag,
-            phash: up.phash ?? null,
-            width: up.width,
-            height: up.height,
-            taken_at: exif.takenAt,
-            lat: exif.lat,
-            lng: exif.lng,
-            has_exif: exif.hasExif,
-          }),
-        })
-        if (!save.ok) throw new Error((await save.json()).error ?? "saving failed")
-        update(i, { state: "done" })
-      } catch (err) {
-        update(i, { state: "failed", note: err instanceof Error ? err.message : String(err) })
+      if (problem) update(i, { state: "rejected", note: problem })
+      else valid.push(i)
+    })
+    // A few uploads in flight at once; files still start in the order they were picked.
+    let next = 0
+    let uploaded = 0
+    const worker = async () => {
+      while (next < valid.length) {
+        const i = valid[next++]
+        if (await uploadOne(i, files[i])) uploaded++
       }
     }
+    await Promise.all(Array.from({ length: Math.min(PARALLEL_UPLOADS, valid.length) }, worker))
     setBusy(false)
+    if (uploaded > 0) window.dispatchEvent(new CustomEvent(UPLOADED_EVENT, { detail: { uploaded } }))
     router.refresh()
   }
 

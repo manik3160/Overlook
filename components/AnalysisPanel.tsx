@@ -1,15 +1,38 @@
 "use client"
 
 import Link from "next/link"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { InlineNotice } from "@/components/ui/notice"
+import { UPLOADED_EVENT } from "@/components/Uploader"
 
 type Counts = { total: number; pending: number; analyzing: number; done: number; failed: number }
 type Result = { public_id: string; status: string; error?: string; id?: string }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const AUTO_KEY = "overlook:auto-analyze"
+const AUTO_EVENT = "overlook:auto-analyze-changed"
+
+// Per-browser preference, off by default. Storage can be blocked (private mode), so every access is
+// guarded; if it is, the checkbox still works for this page view via the in-memory fallback.
+let autoFallback = false
+const readAuto = () => {
+  try { return localStorage.getItem(AUTO_KEY) === "1" } catch { return autoFallback }
+}
+const writeAuto = (on: boolean) => {
+  autoFallback = on
+  try { localStorage.setItem(AUTO_KEY, on ? "1" : "0") } catch { /* preference just won't persist */ }
+  window.dispatchEvent(new Event(AUTO_EVENT))
+}
+const subscribeAuto = (onChange: () => void) => {
+  window.addEventListener(AUTO_EVENT, onChange)
+  window.addEventListener("storage", onChange)
+  return () => {
+    window.removeEventListener(AUTO_EVENT, onChange)
+    window.removeEventListener("storage", onChange)
+  }
+}
 
 // Analysis progress ledger (DESIGN.md 7.15). Logic is unchanged: the same batch loop, stop ref and retry route.
 export default function AnalysisPanel({ initial }: { initial: Counts }) {
@@ -19,9 +42,14 @@ export default function AnalysisPanel({ initial }: { initial: Counts }) {
   const [note, setNote] = useState("")
   const [wait, setWait] = useState(0)
   const [errors, setErrors] = useState<Result[]>([])
+  const auto = useSyncExternalStore(subscribeAuto, readAuto, () => false)
   const stop = useRef(false)
+  const runningRef = useRef(false)
+  const runRef = useRef<() => Promise<void>>(async () => {})
 
   async function run() {
+    if (runningRef.current) return
+    runningRef.current = true
     stop.current = false
     setRunning(true)
     setNote("")
@@ -47,11 +75,29 @@ export default function AnalysisPanel({ initial }: { initial: Counts }) {
     } catch (err) {
       setNote(err instanceof Error ? err.message : String(err))
     } finally {
+      runningRef.current = false
       setRunning(false)
       setWait(0)
       router.refresh()
     }
   }
+
+  useEffect(() => {
+    runRef.current = run
+  })
+
+  // When the uploader finishes a batch: pull fresh counts (server props don't reset this state),
+  // then start analysing if auto mode is on and nothing is running yet.
+  useEffect(() => {
+    const onUploaded = async () => {
+      const res = await fetch("/api/analyze/status")
+      if (res.ok) setCounts((await res.json()).counts)
+      if (readAuto() && !runningRef.current) void runRef.current()
+    }
+    const listener = () => void onUploaded()
+    window.addEventListener(UPLOADED_EVENT, listener)
+    return () => window.removeEventListener(UPLOADED_EVENT, listener)
+  }, [])
 
   async function retry() {
     const res = await fetch("/api/analyze/retry", { method: "POST" })
@@ -87,6 +133,14 @@ export default function AnalysisPanel({ initial }: { initial: Counts }) {
         )}
         <Button variant="outline" onClick={retry} disabled={running || counts.failed + counts.analyzing === 0}>Retry failed / stuck</Button>
       </div>
+      <label className="text-small flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={auto}
+          onChange={(e) => writeAuto(e.target.checked)}
+        />
+        Analyze automatically after each upload (spends AI credits)
+      </label>
       {running && !wait && <p className="text-small" aria-live="polite">Analyzing 2 photos at a time…</p>}
       {wait > 0 && <InlineNotice>Rate limited: retrying in {wait} s. This is normal on the free tier.</InlineNotice>}
       {note && !wait && <InlineNotice tone={note.startsWith("Rate limited") ? "neutral" : "error"}>{note}</InlineNotice>}
