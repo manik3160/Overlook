@@ -1,6 +1,8 @@
 import "server-only"
 import { supabase } from "@/lib/supabase"
 import { recomputeTrust } from "@/lib/trust-db"
+import { cachedCall } from "@/lib/cache"
+import { scanProvenance, SCAN_BYTES } from "@/lib/provenance"
 
 export type NewAsset = {
   public_id: string; asset_id?: string; resource_type: "image" | "video"; secure_url: string
@@ -27,8 +29,19 @@ export async function saveAsset(b: NewAsset): Promise<{ asset: Record<string, un
     .select()
     .single()
   if (error) return { error: error.message }
+  // Declared-AI check on the original file (free, no AI call). Our own camera's captures are skipped.
+  if (b.resource_type === "image" && !b.capture_proof) await checkProvenance(data.id, b.secure_url, b.etag ?? b.public_id).catch(() => null)
   await recomputeTrust([data.id])
   // Re-read so the caller sees the trust score and flags that were just computed.
   const { data: scored } = await supabase.from("assets").select("*").eq("id", data.id).single()
   return { asset: scored ?? data }
+}
+
+// Reads the start of the stored original (where metadata lives) and records what it declares. Cached per file.
+async function checkProvenance(assetId: string, url: string, etag: string) {
+  await cachedCall("provenance", assetId, { etag, v: 1 }, async () => {
+    const res = await fetch(url, { headers: { Range: `bytes=0-${SCAN_BYTES - 1}` }, signal: AbortSignal.timeout(8000) })
+    if (!res.ok && res.status !== 206) throw new Error(`could not read the original (${res.status})`)
+    return scanProvenance(new Uint8Array(await res.arrayBuffer()))
+  })
 }

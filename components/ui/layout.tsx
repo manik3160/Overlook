@@ -19,8 +19,8 @@ export function PageHeader({ eyebrow, title, lede, meta, actions, aside, back, s
 }) {
   const acts = actions && <div className="flex flex-wrap gap-2">{actions}</div>
   return (
-    <header className="mb-14 grid gap-8 border-b border-line pb-8 lg:grid-cols-12 lg:items-center">
-      <div className={cn("grid min-w-0 content-start gap-4", aside ? "lg:col-span-6" : "lg:col-span-9")}>
+    <header className={cn("mb-14 grid gap-8 border-b border-line pb-8 lg:items-center", aside ? "lg:grid-cols-12" : "lg:grid-cols-[minmax(0,1fr)_auto]")}>
+      <div className={cn("grid min-w-0 content-start gap-4", aside && "lg:col-span-6")}>
         {back && <Link href={back.href} className="text-[13px] text-fg-2 hover:text-fg">← {back.label}</Link>}
         {eyebrow && <Eyebrow mark>{eyebrow}</Eyebrow>}
         <h1 className={cn(size === "hero" ? "text-hero" : "text-hero-md", "break-words")}>{title}</h1>
@@ -28,7 +28,7 @@ export function PageHeader({ eyebrow, title, lede, meta, actions, aside, back, s
         {meta && <p className="text-data text-fg-3">{meta}</p>}
         {aside && acts && <div className="pt-2">{acts}</div>}
       </div>
-      {aside ? <div className="lg:col-span-6">{aside}</div> : acts && <div className="lg:col-span-3 lg:flex lg:justify-end">{acts}</div>}
+      {aside ? <div className="lg:col-span-6">{aside}</div> : acts && <div className="lg:flex lg:justify-end">{acts}</div>}
     </header>
   )
 }

@@ -91,7 +91,9 @@ async function main() {
     check("H null-island location is refused", rh.status === 400 && /location/.test(rh.body.error ?? ""), `status ${rh.status} ${rh.body.error}`)
 
     // I. a real capture far from the site loses points but keeps the badge (place is still checked)
-    const i = await photo(); const ri = await send(mk(await nonce(), await sha256Hex(i.bytes), { lat: 28.6, lng: 77.2 }), i.up)
+    // a second device, so this checks the geofence alone (the same device this far away would also be impossible travel)
+    const i = await photo(); const dev2 = await generateDeviceKey(); const pi = mk(await nonce(), await sha256Hex(i.bytes), { lat: 28.6, lng: 77.2 })
+    const ri = await send(pi, i.up, dev2, await exportPublicKey(dev2))
     const ci = (ri.body.asset?.trust_flags ?? []).map((x) => x.code)
     check("I far-away capture: OUTSIDE_GEOFENCE still flagged, score 75", ri.status === 200 && ci.includes("OUTSIDE_GEOFENCE") && ci.includes("CAPTURED_LIVE") && ri.body.asset?.trust_score === 75, `flags ${ci.join(",")} score ${ri.body.asset?.trust_score}`)
 
@@ -108,6 +110,15 @@ async function main() {
     const k = await photo(); const rk = await post("/api/assets", { ...uploadInfo(k.up), resource_type: "image", has_exif: false })
     const ck = (rk.body.asset?.trust_flags ?? []).map((x) => x.code)
     check("K plain upload: NO_METADATA, capped 60, no CAPTURED_LIVE", rk.status === 200 && ck.includes("NO_METADATA") && !ck.includes("CAPTURED_LIVE") && rk.body.asset?.trust_score === 60, `flags ${ck.join(",")} score ${rk.body.asset?.trust_score}`)
+
+    // L. impossible travel: the same device signs a photo ~84 km away 5 minutes after capture A
+    const l = await photo(); const pl = mk(await nonce(), await sha256Hex(l.bytes), { lat: SITE.lat + 0.755 })
+    const rl = await send(pl, l.up)
+    const cl = (rl.body.asset?.trust_flags ?? []).map((x) => x.code)
+    const { data: aNow } = await sb.from("assets").select("trust_flags").eq("id", assetA!.id).single()
+    const ca = ((aNow?.trust_flags ?? []) as Flag[]).map((x) => x.code)
+    check("L same device 84 km away minutes later: IMPOSSIBLE_TRAVEL on the new photo", rl.status === 200 && cl.includes("IMPOSSIBLE_TRAVEL"), `flags ${cl.join(",")}`)
+    check("L ...and the earlier photo is re-scored and flagged too", ca.includes("IMPOSSIBLE_TRAVEL"), `flags ${ca.join(",")}`)
 
     // how many assets exist with the replayed nonce (must be exactly 1)
     const { data: dup } = await sb.from("assets").select("id").eq("capture_proof->payload->>nonce", pa.nonce)

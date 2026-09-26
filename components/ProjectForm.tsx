@@ -33,12 +33,19 @@ export default function ProjectForm({ mode, projectId, initial = {}, assetIds, s
       end_date: text(String(f.get("end_date"))),
       ...(mode === "create" && assetIds ? { asset_ids: assetIds } : {}),
     }
+    // Optional columns (migration 0004): only sent when filled in or being cleared, so the form keeps working without them.
+    const organization = text(String(f.get("organization") ?? ""))
+    const grant = num(String(f.get("grant_inr") ?? ""))
+    const extra = {
+      ...(organization !== null || initial.organization ? { organization } : {}),
+      ...(grant !== null || initial.grant_inr != null ? { grant_inr: grant } : {}),
+    }
     setBusy(true)
     setError("")
     const res = await fetch(mode === "create" ? "/api/projects" : `/api/projects/${projectId}`, {
       method: mode === "create" ? "POST" : "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, ...extra }),
     })
     const json = await res.json()
     setBusy(false)
@@ -53,6 +60,10 @@ export default function ProjectForm({ mode, projectId, initial = {}, assetIds, s
       <Field label="Activity"><input name="activity_type" list="activities" defaultValue={initial.activity_type ?? ""} className={inputCls} /></Field>
       <datalist id="activities">{ACTIVITIES.map((a) => <option key={a} value={a} />)}</datalist>
       <Field label="Description"><input name="description" defaultValue={initial.description ?? ""} className={inputCls} /></Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Organisation (NGO)"><input name="organization" defaultValue={initial.organization ?? ""} className={inputCls} /></Field>
+        <Field label="Grant amount (₹)"><input name="grant_inr" type="number" min={0} step="any" defaultValue={initial.grant_inr ?? ""} className={inputCls} /></Field>
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Centre latitude"><input name="center_lat" type="number" step="any" defaultValue={initial.center_lat ?? ""} className={inputCls} /></Field>
         <Field label="Centre longitude"><input name="center_lng" type="number" step="any" defaultValue={initial.center_lng ?? ""} className={inputCls} /></Field>

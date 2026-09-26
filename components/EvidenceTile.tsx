@@ -4,7 +4,7 @@ import SafeImg from "@/components/SafeImg"
 import TrustBadge from "@/components/TrustBadge"
 import { tileState, type StateInput } from "@/components/evidence-state"
 import { formatTime } from "@/lib/dates"
-import { thumbUrl } from "@/lib/cloudinary-url"
+import { blurUrl, thumbUrl } from "@/lib/cloudinary-url"
 import { formatClock } from "@/lib/video"
 import { cn } from "@/lib/utils"
 
@@ -32,7 +32,7 @@ export function TileImage({ asset, sizeClass = "aspect-square", extra, bare = fa
   const isFrame = !!asset.parent_asset_id && asset.frame_second != null
   return (
     <span className="relative block">
-      <span className={cn("develop-frame block", sizeClass, st.developed && "is-developed")} data-hover-develop="">
+      <span className={cn("develop-frame block", sizeClass, st.developed && "is-developed")} data-hover-develop="" style={{ backgroundImage: `url(${blurUrl(asset.secure_url, asset.resource_type)})` }}>
         <SafeImg src={src} alt={asset.caption ?? (asset.public_id ? shortId(asset.public_id) : "Evidence photo")} className="absolute inset-0 size-full object-cover" />
         <SafeImg src={src} alt="" veil className="develop-veil" />
         {!bare && st.chip === "ANALYZING" && <span className="sweep pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true" />}

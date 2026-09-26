@@ -11,6 +11,8 @@ export const projectFields = z.object({
   radius_m: z.number().int().min(10).max(50_000).optional(),
   start_date: date.nullable().optional(),
   end_date: date.nullable().optional(),
+  organization: z.string().trim().max(120).nullable().optional(), // needs migration 0004
+  grant_inr: z.number().min(0).max(1e13).nullable().optional(), // needs migration 0004
 })
 
 export const createProjectSchema = projectFields.extend({ asset_ids: z.array(z.string().uuid()).optional() })
@@ -27,4 +29,6 @@ export type Project = {
   radius_m: number | null
   start_date: string | null
   end_date: string | null
+  organization?: string | null
+  grant_inr?: number | null
 }

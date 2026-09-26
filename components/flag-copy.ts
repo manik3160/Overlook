@@ -1,4 +1,4 @@
-import { CalendarX, CircleSlash, Copy, Info, LocateOff, MonitorSmartphone, ShieldCheck, type LucideIcon } from "lucide-react"
+import { CalendarX, CircleSlash, Copy, Info, LocateOff, MonitorSmartphone, Route, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react"
 
 // Human titles and icons per flag code (DESIGN.md 7.6). `reason` text always comes from lib/trust.ts unchanged.
 export const FLAG_COPY: Record<string, { title: string; icon: LucideIcon }> = {
@@ -8,6 +8,8 @@ export const FLAG_COPY: Record<string, { title: string; icon: LucideIcon }> = {
   OUTSIDE_GEOFENCE: { title: "Taken outside the site", icon: LocateOff },
   OUTSIDE_TIMEFRAME: { title: "Taken outside the project dates", icon: CalendarX },
   IRRELEVANT: { title: "Doesn't look like field work", icon: CircleSlash },
+  AI_GENERATED_DECLARED: { title: "Declares it was made with generative AI", icon: Sparkles },
+  IMPOSSIBLE_TRAVEL: { title: "Same device, two places too far apart", icon: Route },
   CAPTURED_LIVE: { title: "Captured live and signed on the device", icon: ShieldCheck },
   NO_METADATA: { title: "No location or time metadata", icon: Info },
   LOW_CONFIDENCE: { title: "Couldn't classify confidently", icon: Info },

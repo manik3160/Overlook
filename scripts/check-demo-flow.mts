@@ -54,7 +54,8 @@ console.log("== project: scorecard, pairs, report, cards, story ==")
 const proj = txt(await get("/projects/" + A))
 const projText = proj.join(" ")
 check("phases: before 4 (until 3 Sept), after 5 (from 14 Sept)", /Before ≤ 3 Sept 2026 · 4 photos/.test(projText) && /After ≥ 14 Sept 2026 · 5 photos/.test(projText), (projText.match(/Before ≤[^A]*After ≥[^·]*· \d+ photos/) ?? [""])[0])
-check("3 before/after pairs", proj.filter((l) => /days apart · [\d.]+ m apart/.test(l)).length === 3)
+const pairsTab = txt(await get("/projects/" + A + "?tab=before-after")) // the project page is tabbed; pairs live on their own tab
+check("3 before/after pairs", pairsTab.filter((l) => /days apart · [\d.]+ m apart/.test(l)).length === 3)
 for (let i = 0; i < 3; i++) { const r = await post(`/api/projects/${A}/pairs/summarize`, { limit: 2 }); if (r.remaining === 0) break; if (r.rateLimited) await new Promise((x) => setTimeout(x, 30000)) }
 const rep = await post(`/api/projects/${A}/reports`, { kind: "donor" })
 const ver = txt(await get("/verify/" + rep.report.id)).join(" ")
@@ -62,7 +63,7 @@ check("report: verify page says the report is unchanged", /Report unchanged/.tes
 const pdf = await fetch(`${APP}/api/reports/${rep.report.id}/pdf`)
 const buf = Buffer.from(await pdf.arrayBuffer())
 check("report: PDF served", pdf.status === 200 && buf.subarray(0, 5).toString() === "%PDF-", `${buf.length} bytes`)
-const projHtml = await get("/projects/" + A)
+const projHtml = await get("/projects/" + A + "?tab=campaign")
 const cards = [...projHtml.matchAll(/<img[^>]*src="(https:\/\/res\.cloudinary\.com[^"]*l_text[^"]*)"/g)].map((m) => m[1].replace(/&amp;/g, "&"))
 check("3 campaign cards present", cards.length === 3)
 for (const u of cards) { const r = await fetch(u); check(`card renders (${u.includes("NotoSans") ? "hindi" : u.includes("h_1080/") ? "instagram" : "story"})`, r.status === 200 && (r.headers.get("content-type") ?? "").includes("image/jpeg")) }

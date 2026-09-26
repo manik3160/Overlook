@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 // DESIGN.md 7.1. Primary is ink (not blue): blue is reserved for provenance and focus.
-export const buttonVariants = cva(
+const buttonCva = cva(
   "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-sm border border-transparent text-sm font-medium whitespace-nowrap transition-[background-color,color,border-color] duration-[120ms] outline-none select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink active:translate-y-px disabled:pointer-events-none disabled:opacity-40 aria-busy:cursor-progress [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
   {
     variants: {
@@ -28,7 +28,11 @@ export const buttonVariants = cva(
   }
 )
 
-function Button({ className, variant = "default", size = "default", ...props }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+// Always merge: the base `border-transparent` and a variant's border colour otherwise both land on the element, and
+// the transparent one can win. That made outline links (e.g. "Field camera") render with no border.
+export const buttonVariants = (props?: Parameters<typeof buttonCva>[0]) => cn(buttonCva(props))
+
+function Button({ className, variant = "default", size = "default", ...props }: ButtonPrimitive.Props & VariantProps<typeof buttonCva>) {
   return <ButtonPrimitive data-slot="button" className={cn(buttonVariants({ variant, size }), className)} {...props} />
 }
 

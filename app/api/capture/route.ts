@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { supabase } from "@/lib/supabase"
 import { saveAsset } from "@/lib/assets-db"
+import { recomputeTrust } from "@/lib/trust-db"
 import { nonceIsGenuine } from "@/lib/capture-server"
 import { checkTiming, deviceId, plausibleLocation, sha256Hex, verifySignature, type CapturePayload, type CaptureProof, type PublicKeyJwk } from "@/lib/capture"
 
@@ -56,5 +57,8 @@ export async function POST(request: Request) {
     project_id: payload.projectId, capture_proof: proof,
   })
   if ("error" in saved) return reject(saved.error, 500)
+  // Impossible travel works both ways: re-score this device's earlier captures too.
+  const { data: sameDevice } = await supabase.from("assets").select("id").eq("capture_proof->>deviceId", proof.deviceId).neq("id", saved.asset.id as string)
+  if (sameDevice?.length) await recomputeTrust(sameDevice.map((r) => r.id))
   return NextResponse.json({ asset: saved.asset })
 }

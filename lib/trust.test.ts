@@ -135,3 +135,53 @@ describe("computeTrust", () => {
     for (const f of noMeta.flags) expect(f.reason.toLowerCase()).not.toMatch(/\bfake|fraud/)
   })
 })
+
+describe("cross-organisation reuse", () => {
+  it("names the other organisation when a near-copy comes from another NGO", () => {
+    const r = run({ asset: asset({ org: "Green Earth" }), others: [other({ phash: "0000000000000001", project_id: "p2", org: "Blue River Trust" })] })
+    const f = r.flags.find((x) => x.code === "DUPLICATE_REUSED")!
+    expect(f.reason).toContain("from another organisation (Blue River Trust)")
+    expect(f.evidence.otherOrganization).toBe("Blue River Trust")
+  })
+  it("same organisation (any case) keeps the normal wording", () => {
+    const r = run({ asset: asset({ org: "Green Earth" }), others: [other({ phash: "0000000000000001", project_id: "p2", org: "green earth " })] })
+    expect(r.flags[0].reason).toContain("from a different project")
+  })
+})
+
+describe("impossible travel", () => {
+  const signed = (o: Partial<TrustAsset> = {}) => asset({ device: "dev1", taken_at: "2026-09-12T10:00:00Z", ...o })
+  // ~84 km north of the site
+  const far = { lat: site.lat + 0.755, lng: site.lng }
+  it("flags the same device 84 km away 10 minutes later (-30)", () => {
+    const r = run({ asset: signed(), others: [other({ device: "dev1", ...far, taken_at: "2026-09-12T10:10:00Z" })] })
+    const f = r.flags.find((x) => x.code === "IMPOSSIBLE_TRAVEL")!
+    expect(f.reason).toBe("Flagged for review: the same device also signed a photo 84 km away 10 minutes apart, faster than any road journey.")
+    expect(r.score).toBe(70)
+  })
+  it("checks both directions in time (the earlier photo is flagged too)", () => {
+    expect(codes(run({ asset: signed(), others: [other({ device: "dev1", ...far, taken_at: "2026-09-12T09:55:00Z" })] }))).toContain("IMPOSSIBLE_TRAVEL")
+  })
+  it("allows a real journey, short distances, other devices and unsigned photos", () => {
+    const at = (o: Partial<TrustOther>) => codes(run({ asset: signed(), others: [other({ device: "dev1", ...far, taken_at: "2026-09-12T12:00:00Z", ...o })] }))
+    expect(at({})).not.toContain("IMPOSSIBLE_TRAVEL") // 84 km in 2 h = 42 km/h
+    expect(at({ lat: site.lat + 0.03, taken_at: "2026-09-12T10:01:00Z" })).not.toContain("IMPOSSIBLE_TRAVEL") // ~3 km: under the 5 km floor
+    expect(at({ device: "dev2", taken_at: "2026-09-12T10:05:00Z" })).not.toContain("IMPOSSIBLE_TRAVEL")
+    expect(codes(run({ asset: asset(), others: [other({ device: "dev1", ...far, taken_at: "2026-09-12T10:05:00Z" })] }))).not.toContain("IMPOSSIBLE_TRAVEL")
+  })
+  it("two places at the same minute is impossible", () => {
+    expect(codes(run({ asset: signed(), others: [other({ device: "dev1", ...far, taken_at: "2026-09-12T10:00:00Z" })] }))).toContain("IMPOSSIBLE_TRAVEL")
+  })
+})
+
+describe("declared AI-generated", () => {
+  it("flags a file that declares generative AI (-40), naming the source", () => {
+    const r = run({ provenance: { aiDeclared: true, source: "Adobe Firefly" } })
+    expect(codes(r)).toEqual(["AI_GENERATED_DECLARED"])
+    expect(r.flags[0].reason).toBe("Flagged for review: this file declares it was made or edited with generative AI (Adobe Firefly).")
+    expect(r.score).toBe(60)
+  })
+  it("no declaration, no flag", () => {
+    expect(run({ provenance: { aiDeclared: false, source: null } }).flags).toEqual([])
+  })
+})

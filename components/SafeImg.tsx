@@ -14,6 +14,19 @@ export default function SafeImg({ src, alt, className, veil = false }: { src: st
       </span>
     )
   }
-  // eslint-disable-next-line @next/next/no-img-element -- Cloudinary transformation URLs are already sized
-  return <img src={src} alt={alt} loading="lazy" onError={() => setBroken(true)} className={className} aria-hidden={veil || undefined} />
+  // `data-loaded` drives the fade-in in CSS. The ref catches images that finished loading before hydration.
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- Cloudinary transformation URLs are already sized
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      ref={(el) => { if (el?.complete && el.naturalWidth) el.dataset.loaded = "1" }}
+      onLoad={(e) => { e.currentTarget.dataset.loaded = "1" }}
+      onError={() => setBroken(true)}
+      className={className}
+      aria-hidden={veil || undefined}
+    />
+  )
 }

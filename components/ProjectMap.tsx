@@ -31,19 +31,31 @@ function useTokens() {
   }, [tick])
 }
 
-function FitBounds({ center, radiusM, points }: Omit<Props, "project">) {
+// Frame the site, not the whole world: fit the geofence plus pins near it. Far-off pins are listed above the map
+// instead of dragging the zoom out (DESIGN.md 7.11). `focus` flies to one pin when asked.
+const NEAR_FACTOR = 3
+function FitBounds({ center, radiusM, near, focus }: { center: Props["center"]; radiusM: number; near: MapPoint[]; focus: MapPoint | null }) {
   const map = useMap()
   useEffect(() => {
-    const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]))
+    if (focus) { map.flyTo([focus.lat, focus.lng], 15, { duration: 0.8 }); return }
+    const bounds = L.latLngBounds(near.map((p) => [p.lat, p.lng] as [number, number]))
     if (center) bounds.extend(L.latLng(center.lat, center.lng).toBounds(radiusM * 2))
     if (bounds.isValid()) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 17 })
-  }, [map, center, radiusM, points])
+  }, [map, center, radiusM, near, focus])
   return null
 }
+
+const km = (m: number) => (m >= 10_000 ? `${Math.round(m / 1000).toLocaleString("en-IN")} km` : m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`)
 
 export default function ProjectMap({ center, radiusM, points, project }: Props) {
   const c = useTokens()
   const [list, setList] = useState(false)
+  const [focusId, setFocusId] = useState<string | null>(null)
+  const { far, near } = useMemo(() => {
+    const far = center ? points.filter((p) => p.distanceM !== null && p.distanceM > radiusM * NEAR_FACTOR).sort((a, b) => b.distanceM! - a.distanceM!) : []
+    return { far, near: center ? points.filter((p) => !far.includes(p)) : points }
+  }, [center, radiusM, points])
+  const focus = useMemo(() => points.find((p) => p.id === focusId) ?? null, [points, focusId])
   const start = center ?? points[0]
   if (!start) {
     return (
@@ -57,6 +69,19 @@ export default function ProjectMap({ center, radiusM, points, project }: Props) 
   const cross = L.divIcon({ className: "", iconSize: [12, 12], iconAnchor: [6, 6], html: `<svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 0v12M0 6h12" stroke="${c.fg}" stroke-width="1"/></svg>` })
   return (
     <div className="grid gap-3">
+      {far.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-[13px]" role="note">
+          <span className="text-fg-2">Framed on the site.</span>
+          {focus ? (
+            <button type="button" onClick={() => setFocusId(null)} className="inline-flex h-7 items-center rounded-sm border border-line-strong px-2.5 text-fg hover:bg-surface-2">Back to site</button>
+          ) : far.slice(0, 3).map((p) => (
+            <button key={p.id} type="button" onClick={() => setFocusId(p.id)} className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-suspicious/60 px-2.5 text-suspicious hover:bg-suspicious-tint">
+              <span className="size-2 rounded-full bg-suspicious" aria-hidden="true" />1 photo {km(p.distanceM!)} away · show
+            </button>
+          ))}
+          {!focus && far.length > 3 && <span className="text-data text-fg-3">+{far.length - 3} more in the list view</span>}
+        </div>
+      )}
       <div className="h-[300px] border border-line md:h-[420px]">
         <MapContainer center={[start.lat, start.lng]} zoom={15} style={{ height: "100%", width: "100%" }}>
           <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -75,7 +100,7 @@ export default function ProjectMap({ center, radiusM, points, project }: Props) 
               </Popup>
             </CircleMarker>
           ))}
-          <FitBounds center={center} radiusM={radiusM} points={points} />
+          <FitBounds center={center} radiusM={radiusM} near={near} focus={focus} />
         </MapContainer>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">

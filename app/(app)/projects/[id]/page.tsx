@@ -21,7 +21,7 @@ import { suggestCompliance } from "@/lib/compliance"
 import { TAXONOMY } from "@/lib/taxonomy"
 import { loadGaps, shotListQr, shotListUrl } from "@/lib/gaps-data"
 import PairsPanel, { type PairView } from "@/components/PairsPanel"
-import SectionNav from "@/components/SectionNav"
+import ProjectTabs, { tabHref, toTab } from "@/components/ProjectTabs"
 import type { TileAsset } from "@/components/EvidenceTile"
 import { PageHeader, Section } from "@/components/ui/layout"
 import { InlineNotice } from "@/components/ui/notice"
@@ -51,6 +51,7 @@ export async function generateMetadata(props: PageProps<"/projects/[id]">): Prom
 
 export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params
+  const tab = toTab((await props.searchParams).tab)
   const { data: project } = await supabase.from("projects").select("*").eq("id", id).maybeSingle<Project>()
   if (!project) notFound()
 
@@ -118,11 +119,6 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
     .sort((x, y) => (x.d ?? Infinity) - (y.d ?? Infinity))
     .map(({ a }) => ({ asset: a, label: label(a) }))
 
-  const sections = [
-    { id: "overview", label: "Overview" }, { id: "timeline", label: "Timeline" }, { id: "before-after", label: "Before/after" },
-    { id: "evidence", label: "Evidence" }, { id: "reports", label: "Reports" }, { id: "campaign", label: "Campaign" },
-  ]
-
   return (
     <>
       <PageHeader
@@ -138,14 +134,15 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           <>
             <Sheet title="Edit project" trigger="Edit" size="default"><ProjectForm mode="edit" projectId={id} submitLabel="Save changes" initial={project} /></Sheet>
             <Link href={`/capture?project=${id}`} className={buttonVariants({ variant: "outline" })}>Field camera</Link>
-            <a href="#reports" className={buttonVariants()}>Reports &amp; PDF</a>
+            <Link href={tabHref(id, "reports")} scroll={false} className={buttonVariants()}>Reports &amp; PDF</Link>
           </>
         }
       />
       {outside > 0 && <InlineNotice tone="warning" className="-mt-6 mb-8">{outside} photo{outside === 1 ? " is" : "s are"} outside the geofence and flagged for review.</InlineNotice>}
 
-      <SectionNav items={sections} />
+      <ProjectTabs projectId={id} active={tab} counts={{ "before-after": pairs.length, evidence: assets.length, reports: reports.length }} />
 
+      {tab === "overview" && (
       <Section id="overview" eyebrow="01 · Overview" title="Impact scorecard">
         <div className="grid gap-8 lg:grid-cols-12">
           <div className="min-w-0 lg:col-span-7"><Scorecard projectId={id} sc={scorecard} rejected={rejected} /></div>
@@ -158,11 +155,15 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           </div>
         )}
       </Section>
+      )}
 
+      {tab === "timeline" && (
       <Section id="timeline" eyebrow="02 · Timeline" title="Photos by day" action={<span className="text-data text-fg-3">IST</span>}>
         <Timeline days={days} />
       </Section>
+      )}
 
+      {tab === "before-after" && (
       <Section id="before-after" eyebrow="03 · Before / after" title={pairs.length ? `Same spot, ${pairs[0].daysApart} days apart` : "Same spot, later"}>
         <PairsPanel projectId={id} pairs={pairs} />
         {satellite && (
@@ -172,7 +173,9 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           </div>
         )}
       </Section>
+      )}
 
+      {tab === "evidence" && (
       <Section
         id="evidence"
         eyebrow="04 · Evidence"
@@ -181,7 +184,9 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       >
         <AssetPicker projectId={id} action="unassign" buttonLabel="Remove from project" assets={assigned} emptyText="No photos assigned yet." />
       </Section>
+      )}
 
+      {tab === "reports" && (
       <Section id="reports" eyebrow="05 · Reports & verification" title="Sealed snapshots">
         {pay && (
           <div className="mb-10 grid gap-4 border-b border-line pb-8">
@@ -202,7 +207,9 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
         </div>
         <ReportsPanel projectId={id} reports={reports} suggested={suggestCompliance(project.activity_type)} />
       </Section>
+      )}
 
+      {tab === "campaign" && (
       <Section id="campaign" eyebrow="06 · Campaign & story" title="Cards for sharing">
         {campaign && <CampaignCards campaign={campaign} />}
         <StoryPanel projectId={id} hasStory={(storyCount ?? 0) > 0} />
@@ -214,6 +221,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           <p className="text-data flex flex-wrap items-center gap-2 break-all text-fg-3">Embed: {`<iframe src="${appUrl}/live/${id}?embed=1" width="100%" height="900"></iframe>`}<CopyButton value={`<iframe src="${appUrl}/live/${id}?embed=1" width="100%" height="900" style="border:0"></iframe>`} label="Copy embed code" /></p>
         </div>
       </Section>
+      )}
 
       <p className="text-small"><Link href="/dashboard" className="text-accent-ink hover:underline">← Back to overview</Link></p>
     </>

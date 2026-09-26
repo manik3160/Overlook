@@ -9,6 +9,7 @@ const ITEMS = [
   { href: "/upload", label: "Upload", match: ["/upload"] },
   { href: "/search", label: "Search", match: ["/search"] },
   { href: "/review", label: "Review", match: ["/review"] },
+  { href: "/registry", label: "Registry", match: ["/registry"] },
 ]
 
 export default function NavLinks({ reviewCount, vertical = false }: { reviewCount: number; vertical?: boolean }) {

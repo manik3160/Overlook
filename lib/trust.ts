@@ -18,8 +18,11 @@ export type TrustAsset = {
   taken_at: string | null
   has_exif: boolean
   captured_live?: boolean // signed on the device at capture time and verified by the server (lib/capture.ts)
+  device?: string | null // id of the device that signed a live capture
+  org?: string | null // the project's organisation (NGO), for cross-organisation reuse
 }
-export type TrustOther = Pick<TrustAsset, "id" | "created_at" | "etag" | "phash" | "project_id" | "parent_asset_id">
+export type TrustOther = Pick<TrustAsset, "id" | "created_at" | "etag" | "phash" | "project_id" | "parent_asset_id"> &
+  Partial<Pick<TrustAsset, "lat" | "lng" | "taken_at" | "device" | "org">>
 export type TrustProject = {
   center_lat: number | null
   center_lng: number | null
@@ -28,12 +31,15 @@ export type TrustProject = {
   end_date: string | null
 }
 export type TrustChecks = { photo_of_screen_or_print: boolean; unrelated_to_field_work: boolean }
+// From the file itself (lib/provenance.ts): the file DECLARES it was made or edited with generative AI.
+export type TrustProvenance = { aiDeclared: boolean; source: string | null }
 export type TrustInput = {
   asset: TrustAsset
   project: TrustProject | null
   others: TrustOther[] // every other asset; only EARLIER uploads count as "the original"
   checks: TrustChecks | null // AI answers, null until analysed
   lowConfidence: boolean
+  provenance?: TrustProvenance | null
 }
 export type TrustResult = { score: number; band: TrustBand; flags: TrustFlag[] }
 
@@ -49,7 +55,13 @@ export const TRUST_DEDUCTIONS = {
   OUTSIDE_GEOFENCE: 25,
   OUTSIDE_TIMEFRAME: 15,
   IRRELEVANT: 10,
+  AI_GENERATED_DECLARED: 40,
+  IMPOSSIBLE_TRAVEL: 30,
 } as const
+
+// Impossible travel: the same signing device at two places faster than any road journey allows.
+export const TRAVEL_MIN_KM = 5 // closer than this is GPS jitter or a short walk
+export const TRAVEL_MAX_KMH = 200
 
 export function trustBand(score: number): TrustBand {
   return score >= 80 ? "Verified" : score >= 50 ? "Needs review" : "Suspicious"
@@ -83,16 +95,43 @@ function duplicateFlag(asset: TrustAsset, others: TrustOther[]): { flag: TrustFl
   }
   if (!best) return null
   const differentProject = !!best.other.project_id && best.other.project_id !== asset.project_id
+  const differentOrg = !!asset.org && !!best.other.org && best.other.org.trim().toLowerCase() !== asset.org.trim().toLowerCase()
   return {
     deduction: TRUST_DEDUCTIONS.DUPLICATE_REUSED,
     flag: {
       code: "DUPLICATE_REUSED",
       severity: differentProject ? "high" : "warning",
-      reason: differentProject
-        ? "Flagged for review: this image looks like a re-used copy of an earlier photo from a different project."
-        : "Flagged for review: this image looks nearly identical to an earlier photo.",
-      evidence: { matchAssetId: best.other.id, hammingDistance: best.distance, differentProject },
+      reason: differentOrg
+        ? `Flagged for review: this image looks like a re-used copy of an earlier photo from another organisation (${best.other.org}).`
+        : differentProject
+          ? "Flagged for review: this image looks like a re-used copy of an earlier photo from a different project."
+          : "Flagged for review: this image looks nearly identical to an earlier photo.",
+      evidence: { matchAssetId: best.other.id, hammingDistance: best.distance, differentProject, ...(differentOrg ? { otherOrganization: best.other.org } : {}) },
     },
+  }
+}
+
+// The same device signed two live captures too far apart for the time between them. Both photos are flagged:
+// either could be the wrong one, and a reviewer decides.
+function travelFlag(asset: TrustAsset, others: TrustOther[]): TrustFlag | null {
+  if (!asset.device || asset.lat === null || asset.lng === null || !asset.taken_at) return null
+  const t = Date.parse(asset.taken_at)
+  let worst: { o: TrustOther; km: number; minutes: number; kmh: number } | null = null
+  for (const o of others) {
+    if (o.id === asset.id || o.device !== asset.device || o.lat == null || o.lng == null || !o.taken_at) continue
+    const km = haversineM({ lat: asset.lat, lng: asset.lng }, { lat: o.lat, lng: o.lng }) / 1000
+    if (km < TRAVEL_MIN_KM) continue
+    const minutes = Math.abs(t - Date.parse(o.taken_at)) / 60_000
+    const kmh = minutes === 0 ? Infinity : km / (minutes / 60)
+    if (kmh > TRAVEL_MAX_KMH && (!worst || kmh > worst.kmh)) worst = { o, km, minutes, kmh }
+  }
+  if (!worst) return null
+  const km = Math.round(worst.km), minutes = Math.round(worst.minutes)
+  return {
+    code: "IMPOSSIBLE_TRAVEL",
+    severity: "high",
+    reason: `Flagged for review: the same device also signed a photo ${km} km away ${minutes} minute${minutes === 1 ? "" : "s"} apart, faster than any road journey.`,
+    evidence: { matchAssetId: worst.o.id, distanceKm: km, minutesApart: minutes },
   }
 }
 
@@ -125,7 +164,7 @@ function geofenceFlag(asset: TrustAsset, project: TrustProject): TrustFlag | nul
 }
 
 export function computeTrust(input: TrustInput): TrustResult {
-  const { asset, project, others, checks, lowConfidence } = input
+  const { asset, project, others, checks, lowConfidence, provenance } = input
   const flags: TrustFlag[] = []
   let deduction = 0
 
@@ -133,6 +172,15 @@ export function computeTrust(input: TrustInput): TrustResult {
   if (dup) {
     flags.push(dup.flag)
     deduction += dup.deduction
+  }
+  if (provenance?.aiDeclared) {
+    flags.push({ code: "AI_GENERATED_DECLARED", severity: "high", reason: `Flagged for review: this file declares it was made or edited with generative AI${provenance.source ? ` (${provenance.source})` : ""}.`, evidence: { source: provenance.source } })
+    deduction += TRUST_DEDUCTIONS.AI_GENERATED_DECLARED
+  }
+  const travel = travelFlag(asset, others)
+  if (travel) {
+    flags.push(travel)
+    deduction += TRUST_DEDUCTIONS.IMPOSSIBLE_TRAVEL
   }
   if (checks?.photo_of_screen_or_print) {
     flags.push({ code: "PHOTO_OF_PHOTO", severity: "high", reason: "Flagged for review: this looks like a photo of a screen or a printed photograph.", evidence: {} })

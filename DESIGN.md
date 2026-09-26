@@ -1662,3 +1662,18 @@ item holding a horizontally scrolling track needs `min-w-0` and a `minmax(0,1fr)
 **Fourth pass (restraint).** The highlighter was on every section label and every section was numbered. Both are now
 rationed (4.2): one mark per app page, numbers only on real sequences. `Eyebrow` is plain by default; `mark` and
 `numbered` opt in.
+
+**Fifth pass (market-standard audit, Tier 1).**
+
+| Area | Change |
+|---|---|
+| Project map | Frames the geofence plus pins within 3x the radius. Far-off pins become a chip above the map ("1 photo 12,789 km away · show") that flies to the pin; "Back to site" returns. |
+| Photo tiles | A ~24 px blurred Cloudinary copy (`blurUrl` in `lib/cloudinary-url.ts`) is painted behind every tile; the real thumbnail fades in on load (`data-loaded`). No more empty dark squares. |
+| Project page | Real tabs (`components/ProjectTabs.tsx`) driven by `?tab=`, server-rendered, linkable, back-button safe. Only the active view renders (7,900 px page is now about 2,000 px per tab). `SectionNav` removed. |
+| Page header | Actions column sizes to its content, so the action row never wraps at desktop widths. |
+| Evidence gaps | The raw shot-list URL is replaced by a copy button. Coverage is drawn as the same 3x3 site grid the check uses (filled = covered, dashed = missing). |
+| Shot list | Progress bar (evidence checks passed), one "Next shot" card with the only filled button, 44 px buttons, whole row taps through to the camera. |
+| Buttons | `buttonVariants()` now merges its classes. Before, outline links used directly as a class rendered with a transparent border. |
+
+Still open (Tier 2): toasts for async results, a Cmd+K palette, relative times, and section sub-headings that use a
+colon ("Pay-on-Proof: payment stages").
