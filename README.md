@@ -245,7 +245,7 @@ These photos are public data for a rehearsal, not evidence of anything the prese
 - **Video metadata** is read from MP4/MOV atoms (time, and GPS from Android/QuickTime `©xyz` or iPhone `meta` keys). WebM and files without those atoms show "no metadata".
 - **Spoken numbers** come back from the transcript as digits ("40 bags"), so keyword search needs "40"; semantic search still works.
 - **No authentication.** It is a single demo workspace; anyone with the link can use the app. The verification and story pages are meant to be public.
-- **Face detection misses masked or very small faces** (Cloudinary `pixelate_faces`, used for every public image and the stored public copies). Check public photos with people before a demo.
+- **Face detection misses masked or very small faces** (Cloudinary `pixelate_faces`, used for every public image and the stored public copies). The "Facial Attributes Detection" add-on was tested on the same photo and found none either (`scripts/try-adv-face.ts`). Check public photos with people before a demo.
 - **The upload-signing route only signs our own settings** (folder `evidence/<name>` or `registry-checks`, our preset, phash, a fresh timestamp); anything else (e.g. `public_id` + `overwrite`) is refused, so an evidence original cannot be replaced at the same URL.
 - **Metadata tamper check** only compares when the stored file itself carries GPS/time. Stripped files (WhatsApp, re-encoded downloads, the Wikimedia sample photos) are never flagged; they stay "no metadata".
 - **Upload Widget:** Google Drive uses Cloudinary's own Drive app; Dropbox is not offered (it needs our own Dropbox app key).
