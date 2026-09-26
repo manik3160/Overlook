@@ -51,7 +51,7 @@ export default async function SearchPage(props: PageProps<"/search">) {
 
   return (
     <>
-      <PageHeader eyebrow="Discover" title={<><b className="font-semibold">Search</b> evidence</>} lede="Describe a scene in plain words, or filter by tag, trust band and date." />
+      <PageHeader eyebrow="Discover" title={<><b className="font-semibold">Search</b> evidence</>} lede="Describe a scene in plain words, type words written on a sign in the photo, or filter by tag, trust band and date." />
 
       <form method="get" className="mb-8 grid gap-5">
         <label className="relative block">

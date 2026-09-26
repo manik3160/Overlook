@@ -26,6 +26,7 @@ export default function CloudinaryRecord({ record }: { record: Rec | null }) {
           ["Flagged because", record.flags.length ? record.flags.join(", ") : "nothing"],
           ["AI tags", record.tags.length ? record.tags.map((t) => t.replaceAll("_", " ")).join(", ") : NA],
           ["Caption", record.caption ?? NA],
+          ...(record.photoText ? [["Words in the photo", record.photoText] as [string, React.ReactNode]] : []),
           ...(record.fileMeta ? [["Inside the file", record.fileMeta.lat === null && !record.fileMeta.takenAt
             ? "no location or time (Cloudinary checked the file itself)"
             : [record.fileMeta.lat !== null ? `GPS ${record.fileMeta.lat.toFixed(5)}, ${record.fileMeta.lng?.toFixed(5)}` : "no GPS", record.fileMeta.takenAt ? `taken ${formatTime(record.fileMeta.takenAt)} IST` : "no time"].join(" · ")] as [string, React.ReactNode]] : []),

@@ -122,7 +122,7 @@ export function syncLater(ids: string[]): void {
   }
 }
 
-export type CloudinaryRecord = { folder: string | null; band: string | null; score: number | null; review: string | null; project: string | null; flags: string[]; tags: string[]; caption: string | null; fileMeta: FileMeta | null }
+export type CloudinaryRecord = { folder: string | null; band: string | null; score: number | null; review: string | null; project: string | null; flags: string[]; tags: string[]; caption: string | null; photoText: string | null; fileMeta: FileMeta | null }
 
 // Reads back what is stored on the file in Cloudinary right now (Admin API), with readable labels. Null if unreachable.
 export async function readCloudinaryRecord(publicId: string, resourceType: string): Promise<CloudinaryRecord | null> {
@@ -140,6 +140,7 @@ export async function readCloudinaryRecord(publicId: string, resourceType: strin
       flags: Array.isArray(m.overlook_flags) ? m.overlook_flags.map((c) => FLAG_TITLES[String(c)] ?? String(c)) : [],
       tags: ((r.tags ?? []) as string[]).filter((t) => t !== "overlook"),
       caption: r.context?.custom?.caption ?? null,
+      photoText: r.context?.custom?.photo_text ?? null,
       fileMeta: image ? parseCloudinaryMetadata(r.image_metadata as Record<string, unknown> | undefined) : null,
     }
   } catch (e) {

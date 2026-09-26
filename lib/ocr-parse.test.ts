@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { parseOcr, textMatches } from "./ocr-parse"
+import { parseOcr, scriptsIn, textLines, textMatches } from "./ocr-parse"
 
 // Shape and text exactly as Cloudinary returned them for the plantation signboard photo (b-spacing).
 const REAL = { ocr: { adv_ocr: { status: "complete", data: [{ textAnnotations: [{ locale: "mr", description: "प्लॉट नंबर-१\nपध्दत - 4X4\nरांची संख्या-" }, { description: "प्लॉट" }] }] } } }
@@ -24,4 +24,14 @@ describe("textMatches", () => {
     expect(textMatches(t, "bridge")).toBe(false)
     expect(textMatches(null, "4x4")).toBe(false)
   })
+})
+
+describe("scriptsIn / textLines", () => {
+  it("names every writing system on a mixed sign", () => {
+    expect(scriptsIn("Gachibowli\nగచ్చిబౌలి")).toEqual(["Latin", "Telugu"])
+    expect(scriptsIn("प्लॉट नंबर-१\nपध्दत - 4X4")).toEqual(["Latin", "Devanagari"])
+    expect(scriptsIn("१२३")).toEqual(["Devanagari"])
+    expect(scriptsIn(null)).toEqual([])
+  })
+  it("splits into clean lines", () => expect(textLines(" a \n\n b\n")).toEqual(["a", "b"]))
 })
