@@ -7,6 +7,7 @@ import { Eyebrow } from "@/components/ui/layout"
 import { EmptyState, InlineNotice } from "@/components/ui/notice"
 import { supabase } from "@/lib/supabase"
 import { manifestHash } from "@/lib/manifest"
+import { posterUrl } from "@/lib/reel"
 import { formatDay } from "@/lib/dates"
 
 export const dynamic = "force-dynamic"
@@ -22,7 +23,7 @@ type StoryManifest = {
   verified_photos: number; total_photos: number
   best_pair: { before_url: string; after_url: string; summary: string | null } | null
 }
-type ReelManifest = { reel: { url: string; seconds: number }; sources: string[] }
+type ReelManifest = { reel: { url: string; seconds: number }; sources: string[]; slides?: { slide_public_id: string }[] }
 
 // Weight contrast (light sentence, one heavy figure): bold the first number in the headline.
 function Headline({ text }: { text: string }) {
@@ -83,7 +84,7 @@ export default async function StoryPage(props: PageProps<"/story/[projectId]">) 
         <section className="grid gap-4" aria-labelledby="s-reel">
           <Eyebrow>Highlight reel</Eyebrow>
           <h2 id="s-reel" className="sr-only">Highlight reel</h2>
-          <video src={reel.reel.url} controls playsInline preload="metadata" className="aspect-square w-full max-w-[540px] border border-line bg-surface-2" aria-label={`Highlight reel, ${reel.reel.seconds} seconds`} />
+          <video src={reel.reel.url} poster={reel.slides?.[0] && process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? posterUrl(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, reel.slides[0].slide_public_id) : undefined} controls playsInline preload="metadata" className="aspect-square w-full max-w-[540px] border border-line bg-surface-2" aria-label={`Highlight reel, ${reel.reel.seconds} seconds`} />
           <p className="text-small">{reel.reel.seconds} seconds, made from {reel.sources.length} verified photos. Faces are pixelated.</p>
         </section>
       )}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { InlineNotice } from "@/components/ui/notice"
 
-export type ReelView = { url: string; downloadUrl: string; seconds: number; generatedAt: string }
+export type ReelView = { url: string; downloadUrl: string; seconds: number; generatedAt: string; poster?: string }
 
 type Copy = { build: string; rebuild: string; busy: string; help: string }
 const REEL_COPY: Copy = {
@@ -39,7 +39,7 @@ export default function ReelPanel({ endpoint, reel, copy = REEL_COPY }: { endpoi
     <div className="grid gap-3">
       {reel && (
         <div className="grid gap-2">
-          <video key={reel.url} src={reel.url} controls playsInline preload="metadata" width={360} height={360} className="border border-line bg-surface-2" />
+          <video key={reel.url} src={reel.url} poster={reel.poster} controls playsInline preload="metadata" width={360} height={360} className="border border-line bg-surface-2" />
           <span className="text-small text-fg-3">{reel.seconds} s · made {reel.generatedAt}</span>
         </div>
       )}

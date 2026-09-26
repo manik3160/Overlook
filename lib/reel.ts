@@ -94,3 +94,6 @@ export function planTimelapse(chain: ChainPhoto[], formatDay: (iso: string) => s
   if (dated.length < 2) return []
   return dated.map((p, i) => ({ kind: "photo", publicId: p.publicId, label: `${i === 0 ? "BEFORE" : i === dated.length - 1 ? "LATEST" : `RETAKE ${i}`} · ${formatDay(p.takenAt!)}` }))
 }
+
+// Still image shown before a reel plays: its first slide (the title card), so the player is never an empty black box.
+export const posterUrl = (cloud: string, firstSlideId: string) => `https://res.cloudinary.com/${cloud}/image/upload/c_fill,w_${REEL_SIZE / 2},h_${REEL_SIZE / 2},f_jpg,q_auto/${firstSlideId}.jpg`

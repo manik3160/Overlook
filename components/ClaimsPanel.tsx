@@ -37,7 +37,7 @@ export default function ClaimsPanel({ projectId, recent }: { projectId: string; 
       </label>
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" onClick={check} disabled={busy || text.trim().length < 20}>{busy ? "Checking claims…" : "Check claims against evidence"}</Button>
-        <span className="text-small text-fg-3">One AI call to split the text, one search per claim. The same text is never checked twice.</span>
+        <span className="text-small text-fg-3">Two AI calls: one splits the text into claims, one says which photo descriptions show each. The same text is never checked twice.</span>
       </div>
       {error && <InlineNotice tone="error">{error}</InlineNotice>}
       {recent.length > 0 && (

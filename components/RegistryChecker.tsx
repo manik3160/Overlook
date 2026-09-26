@@ -12,6 +12,7 @@ export default function RegistryChecker() {
   const [error, setError] = useState<string | null>(null)
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
 
   async function check(file: File | undefined) {
     if (!file) return
@@ -33,8 +34,13 @@ export default function RegistryChecker() {
 
   return (
     <div className="grid gap-6">
-      <label className="grid min-h-36 cursor-pointer content-center justify-items-start gap-2 rounded-md border border-dashed border-line-strong bg-surface-1 px-6 py-6 hover:border-fg-3">
-        <span className="text-title">{busy ? "Checking…" : "Choose or drop a photo to check"}</span>
+      <label
+        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); if (!busy) void check(e.dataTransfer.files[0]) }}
+        className={`grid min-h-36 cursor-pointer content-center justify-items-start gap-2 rounded-md border px-6 py-6 transition-colors duration-[120ms] ${dragging ? "border-solid border-accent-ink bg-accent-tint" : "border-dashed border-line-strong bg-surface-1 hover:border-fg-3"}`}
+      >
+        <span className="text-title">{busy ? "Checking…" : dragging ? "Release to check" : "Choose or drop a photo to check"}</span>
         <span className="text-small">Deleted right after the check.</span>
         <input type="file" accept="image/*" className="sr-only" disabled={busy} onChange={(e) => { void check(e.target.files?.[0]); e.target.value = "" }} />
       </label>

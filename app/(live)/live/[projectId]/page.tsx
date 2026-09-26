@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase"
 import { loadCampaign } from "@/lib/campaign-data"
 import { loadMilestones } from "@/lib/milestones-data"
 import { manifestHash } from "@/lib/manifest"
+import { posterUrl } from "@/lib/reel"
 import { formatDay, formatTime } from "@/lib/dates"
 
 export const dynamic = "force-dynamic"
@@ -36,7 +37,7 @@ export default async function LivePage(props: PageProps<"/live/[projectId]">) {
 
   const feed = c.verifiedRows.filter((r) => r.resource_type === "image").sort((a, b) => (b.time ?? 0) - (a.time ?? 0)).slice(0, FEED)
   const lastEvidence = c.verifiedRows.reduce<number | null>((m, r) => (r.time !== null && (m === null || r.time > m) ? r.time : m), null)
-  const reel = reelRow && manifestHash(reelRow.manifest) === reelRow.manifest_sha256 ? (reelRow.manifest as { reel: { url: string; seconds: number } }) : null
+  const reel = reelRow && manifestHash(reelRow.manifest) === reelRow.manifest_sha256 ? (reelRow.manifest as { reel: { url: string; seconds: number }; slides?: { slide_public_id: string }[] }) : null
   const sat = satRow && manifestHash(satRow.manifest) === satRow.manifest_sha256 ? (satRow.manifest as { verdict: { tone: string; text: string }; before: { date: string; crop: { secure_url: string } }; after: { date: string; crop: { secure_url: string } } }) : null
 
   return (
@@ -97,7 +98,7 @@ export default async function LivePage(props: PageProps<"/live/[projectId]">) {
           {reel && (
             <section className="grid gap-3" aria-label="Highlight reel">
               <Eyebrow>Highlight reel</Eyebrow>
-              <video src={reel.reel.url} controls playsInline preload="metadata" className="aspect-square w-full max-w-[480px] border border-line bg-surface-2" aria-label={`Highlight reel, ${reel.reel.seconds} seconds`} />
+              <video src={reel.reel.url} poster={reel.slides?.[0] && process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? posterUrl(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, reel.slides[0].slide_public_id) : undefined} controls playsInline preload="metadata" className="aspect-square w-full max-w-[480px] border border-line bg-surface-2" aria-label={`Highlight reel, ${reel.reel.seconds} seconds`} />
             </section>
           )}
 

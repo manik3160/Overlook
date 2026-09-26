@@ -17,7 +17,7 @@ import { NA } from "@/lib/copy"
 import { formatTime } from "@/lib/dates"
 import { formatClock, playerUrl } from "@/lib/video"
 import { NO_METADATA_CAP, type TrustFlag } from "@/lib/trust"
-import { reelUrl, TIMELAPSE_PACE } from "@/lib/reel"
+import { posterUrl, reelUrl, TIMELAPSE_PACE } from "@/lib/reel"
 
 export const dynamic = "force-dynamic"
 
@@ -55,7 +55,7 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
   const lapseSlides = ((lapseRow?.manifest?.slides ?? []) as { slide_public_id: string }[]).map((s) => s.slide_public_id)
   const timelapse: ReelView | null = lapseRow && cloud && lapseSlides.length
-    ? { url: reelUrl(cloud, lapseSlides, { pace: TIMELAPSE_PACE }), downloadUrl: reelUrl(cloud, lapseSlides, { pace: TIMELAPSE_PACE, download: "overlook-timelapse" }), seconds: lapseRow.manifest.timelapse.seconds, generatedAt: formatTime(lapseRow.created_at) }
+    ? { url: reelUrl(cloud, lapseSlides, { pace: TIMELAPSE_PACE }), downloadUrl: reelUrl(cloud, lapseSlides, { pace: TIMELAPSE_PACE, download: "overlook-timelapse" }), seconds: lapseRow.manifest.timelapse.seconds, generatedAt: formatTime(lapseRow.created_at), poster: posterUrl(cloud, lapseSlides[0]) }
     : null
   const second = asset.frame_second !== null ? Number(asset.frame_second) : null
   const flags = asset.trust_flags ?? []

@@ -30,7 +30,7 @@ import { InlineNotice } from "@/components/ui/notice"
 import { Sheet } from "@/components/ui/sheet"
 import { buttonVariants } from "@/components/ui/button"
 import { loadCampaign } from "@/lib/campaign-data"
-import { reelSeconds, reelUrl } from "@/lib/reel"
+import { posterUrl, reelSeconds, reelUrl } from "@/lib/reel"
 import { manifestHash } from "@/lib/manifest"
 import { loadEvidence } from "@/lib/project-data"
 import { computeScorecard } from "@/lib/signals"
@@ -74,7 +74,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
   const reelSlides = ((reelRow?.manifest?.slides ?? []) as { slide_public_id: string }[]).map((s) => s.slide_public_id)
   const reel: ReelView | null = reelRow && cloud && reelSlides.length
-    ? { url: reelUrl(cloud, reelSlides), downloadUrl: reelUrl(cloud, reelSlides, { download: "overlook-reel" }), seconds: reelSeconds(reelSlides.length), generatedAt: formatTime(reelRow.created_at) }
+    ? { url: reelUrl(cloud, reelSlides), downloadUrl: reelUrl(cloud, reelSlides, { download: "overlook-reel" }), seconds: reelSeconds(reelSlides.length), generatedAt: formatTime(reelRow.created_at), poster: posterUrl(cloud, reelSlides[0]) }
     : null
   const { data: satRow } = await supabase.from("reports").select("manifest, manifest_sha256, created_at").eq("project_id", id).eq("kind", "satellite").order("created_at", { ascending: false }).limit(1).maybeSingle()
   const satellite: SatelliteView | null = satRow
@@ -205,7 +205,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       )}
 
       {tab === "reports" && (
-      <Section id="reports" eyebrow="05 · Reports & verification" title="Sealed snapshots">
+      <Section id="reports" eyebrow="05 · Reports & verification" title="Payments, claims and sealed reports">
         {pay && (
           <div className="mb-10 grid gap-4 border-b border-line pb-8">
             <h3 className="text-title">Pay-on-Proof: payment stages</h3>
@@ -223,16 +223,30 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           <h3 className="text-title">Claim Checker: does the evidence back the report?</h3>
           <ClaimsPanel projectId={id} recent={claimChecks} />
         </div>
-        <ReportsPanel projectId={id} reports={reports} suggested={suggestCompliance(project.activity_type)} />
+        <div className="grid gap-4">
+          <h3 className="text-title">Sealed reports</h3>
+          <ReportsPanel projectId={id} reports={reports} suggested={suggestCompliance(project.activity_type)} />
+        </div>
       </Section>
       )}
 
       {tab === "campaign" && (
-      <Section id="campaign" eyebrow="06 · Campaign & story" title="Cards for sharing">
-        {campaign && <CampaignCards campaign={campaign} />}
-        <StoryPanel projectId={id} hasStory={(storyCount ?? 0) > 0} />
-        <ReelPanel endpoint={`/api/projects/${id}/reel`} reel={reel} />
-        <div className="grid gap-2">
+      <Section id="campaign" eyebrow="06 · Campaign & story" title="Share the impact">
+        {campaign && (
+          <div className="grid gap-4">
+            <h3 className="text-title">Cards for sharing</h3>
+            <CampaignCards campaign={campaign} />
+          </div>
+        )}
+        <div className="mt-10 grid gap-4 border-t border-line pt-8">
+          <h3 className="text-title">Impact story</h3>
+          <StoryPanel projectId={id} hasStory={(storyCount ?? 0) > 0} />
+        </div>
+        <div className="mt-10 grid gap-4 border-t border-line pt-8">
+          <h3 className="text-title">Highlight reel</h3>
+          <ReelPanel endpoint={`/api/projects/${id}/reel`} reel={reel} />
+        </div>
+        <div className="mt-10 grid gap-2 border-t border-line pt-8">
           <h3 className="text-title">Live donor link</h3>
           <p className="text-small">A public page that updates as new evidence is verified: numbers, payment stages, latest photos (faces pixelated), reel and satellite view. Share it, or embed it on a donation page.</p>
           <p className="text-data flex flex-wrap items-center gap-2 break-all"><a href={`/live/${id}`} target="_blank" rel="noreferrer" className="text-accent-ink underline">{`${appUrl}/live/${id}`}</a><CopyButton value={`${appUrl}/live/${id}`} label="Copy live link" /></p>
