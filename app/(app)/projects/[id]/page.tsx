@@ -11,6 +11,8 @@ import CampaignCards from "@/components/CampaignCards"
 import StoryPanel from "@/components/StoryPanel"
 import ReelPanel, { type ReelView } from "@/components/ReelPanel"
 import SatellitePanel, { type SatelliteView } from "@/components/SatellitePanel"
+import GapsPanel from "@/components/GapsPanel"
+import { loadGaps, shotListQr, shotListUrl } from "@/lib/gaps-data"
 import PairsPanel, { type PairView } from "@/components/PairsPanel"
 import SectionNav from "@/components/SectionNav"
 import type { TileAsset } from "@/components/EvidenceTile"
@@ -68,6 +70,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const satellite: SatelliteView | null = satRow
     ? { ...satRow.manifest, source: satRow.manifest.satellite.source, generatedAt: formatTime(satRow.created_at), intact: manifestHash(satRow.manifest) === satRow.manifest_sha256 }
     : null
+  const [gaps, gapsQr] = await Promise.all([loadGaps(id), shotListQr(id)])
   const { count: storyCount } = await supabase.from("reports").select("id", { count: "exact", head: true }).eq("project_id", id).eq("kind", "social")
   const byId = new Map(evidence.map((e) => [e.id, e]))
   const pairs: PairView[] = (pairRows ?? []).flatMap((p) => {
@@ -137,6 +140,12 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           <div className="min-w-0 lg:col-span-7"><Scorecard projectId={id} sc={scorecard} rejected={rejected} /></div>
           <div className="lg:col-span-5 max-lg:order-first"><ProjectMap center={center} radiusM={radius} points={points} project={project} /></div>
         </div>
+        {gaps && (
+          <div className="mt-10 grid gap-4 border-t border-line pt-8">
+            <h3 className="text-title">Evidence gaps: what is missing</h3>
+            <GapsPanel gaps={gaps} qrDataUrl={gapsQr} listUrl={shotListUrl(id)} />
+          </div>
+        )}
       </Section>
 
       <Section id="timeline" eyebrow="02 · Timeline" title="Photos by day" action={<span className="text-data text-fg-3">IST</span>}>

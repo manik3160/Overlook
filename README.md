@@ -20,6 +20,7 @@ Built for Code Cubicle 6.0 (Problem Statement 02, Cloudinary track).
 | Area | What you get |
 |---|---|
 | Field camera | **Ghost Camera** (`/capture`): the phone shows the earlier photo as a see-through overlay so the retake lines up with it, and **signs** the photo, its GPS fix and the time on the device (WebCrypto key + one-time server session). Verified captures get a "Captured live" flag; retakes pair with their original automatically and build a **time-lapse** of the spot. `npm run check-capture` runs the security checks. |
+| Evidence gaps | Each project lists what is MISSING: spots with a before photo but no after, parts of the site with no photo, expected activities with no verified photo, no photos after the end date, flagged photos waiting. The **shot list** (`/capture/list`, QR on the project page) sends the field team to each spot with directions and a one-tap Ghost Camera. |
 | Upload | Multi-file photo and video upload, signed and direct to Cloudinary. Location and time are read in the browser first (photo EXIF, and MP4/MOV atoms for video). Size limits are enforced before upload. |
 | Analysis | One click runs a cached pipeline per photo: Gemini (caption, 6 visual signals, 3 checks) then Cloudinary AI Vision (taxonomy tags) then an embedding. Nothing is ever paid for twice. |
 | Trust | Score 0-100 with explainable flags, a review queue (approve / reject) and an asset page with the evidence. |
