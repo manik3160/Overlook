@@ -31,6 +31,9 @@ Built for Code Cubicle 6.0 (Problem Statement 02, Cloudinary track).
 | Pay-on-Proof | Payment stages per project ("40% on completion") that turn **ready to release** only when their verified evidence exists (photo count, tags, date window, before/after pair). A ready stage can be sealed as a **release certificate** on the verify page. |
 | Claim Checker | Paste text from an NGO report: Gemini splits it into claims, a second call says which photos' descriptions directly show each claim, and each claim is marked Supported / Partly supported / **No evidence found** (never "false"). Sealed and shareable. |
 | Live donor link | `/live/[projectId]` (embeddable with `?embed=1`): live numbers, payment stages, latest verified photos (faces pixelated), reel and satellite view. |
+| Evidence registry | Public `/registry`: drop any photo to see whether it was used before in ANY project (same file or resized / recompressed copy), where and when first. The checked photo is deleted right after; partners can look up by MD5 only (`/api/registry/lookup?md5=`). Near-copies from another organisation are flagged with its name. |
+| New fraud signals | **Impossible travel** (the same signing device at two places faster than a road journey, both photos flagged) and **declared AI-generated** (the file's C2PA / IPTC metadata says it was made with generative AI; "declares", never "proven"). |
+| Money hooks | Embeddable "verified by Overlook" website badge (`/badge/<projectId>`, live verified share) and cost per verified outcome (grant / verified photos, per verified before/after spot, amount ready to release). |
 | Public timestamps | Every report, certificate and claim check is anchored with **OpenTimestamps** (only the SHA-256 is sent; free; ends up in Bitcoin). The verify page shows pending / anchored-in-block-N and offers the `.json` + `.ots` files to check on opentimestamps.org. |
 | Campaign | Instagram, story and **Hindi** WhatsApp cards (faces pixelated), a public impact-story page and a **highlight reel** video (Cloudinary splicing, crossfades), all built only from verified evidence. |
 | Video | Transcript (Gemini), key frames every ~15 s as analyzable assets, frame-to-exact-second links, searchable spoken words. |
@@ -103,7 +106,7 @@ You need Node 20+, and free accounts on **Supabase**, **Cloudinary** and **Googl
    cp .env.example .env.local      # then fill it in (table below)
    ```
 2. **Supabase**: create a project, then run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) and then
-   [`0002_capture.sql`](supabase/migrations/0002_capture.sql) and [`0003_milestones.sql`](supabase/migrations/0003_milestones.sql) in the SQL Editor (or with the Supabase CLI). It creates the tables, enables pgvector and adds the `match_assets` search function.
+   [`0002_capture.sql`](supabase/migrations/0002_capture.sql) [`0003_milestones.sql`](supabase/migrations/0003_milestones.sql) and [`0004_org_grant.sql`](supabase/migrations/0004_org_grant.sql) in the SQL Editor (or with the Supabase CLI). It creates the tables, enables pgvector and adds the `match_assets` search function.
 3. **Cloudinary**
    - Console, Add-ons: subscribe to **Cloudinary AI Vision**.
    - Settings, Upload, Upload presets: add a preset with **Signing mode = Signed**; its name goes in `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`.

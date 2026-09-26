@@ -18,6 +18,8 @@ import ClaimsPanel, { type ClaimCheckView } from "@/components/ClaimsPanel"
 import { loadMilestones } from "@/lib/milestones-data"
 import { templateMilestones } from "@/lib/milestones"
 import { suggestCompliance } from "@/lib/compliance"
+import { costPerOutcome, inr } from "@/lib/money"
+import { isVerified } from "@/lib/signals"
 import { TAXONOMY } from "@/lib/taxonomy"
 import { loadGaps, shotListQr, shotListUrl } from "@/lib/gaps-data"
 import PairsPanel, { type PairView } from "@/components/PairsPanel"
@@ -83,6 +85,11 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { data: claimRows } = await supabase.from("reports").select("id, created_at, summary:manifest->summary, text:manifest->>input_text").eq("project_id", id).eq("kind", "claims").order("created_at", { ascending: false }).limit(5)
   const claimChecks: ClaimCheckView[] = ((claimRows ?? []) as { id: string; created_at: string; summary: { supported: number; partly: number; noEvidence: number }; text: string }[])
     .map((r) => ({ id: r.id, checkedAt: formatTime(r.created_at), ...r.summary, snippet: r.text.slice(0, 60) }))
+  // Cost per verified outcome (only when a grant amount is set; migration 0004)
+  const verifiedIds = new Set(evidence.filter((e) => e.resource_type === "image" && isVerified(e)).map((e) => e.id))
+  const verifiedSpots = (pairRows ?? []).filter((p) => verifiedIds.has(p.before_asset_id) && verifiedIds.has(p.after_asset_id)).length
+  const grant = typeof project.grant_inr === "number" ? project.grant_inr : project.grant_inr ? Number(project.grant_inr) : null
+  const cost = grant ? costPerOutcome({ grantInr: grant, verifiedPhotos: verifiedIds.size, verifiedSpots, releasablePct: pay?.statuses.length ? pay.releasable : null }) : null
   const { count: storyCount } = await supabase.from("reports").select("id", { count: "exact", head: true }).eq("project_id", id).eq("kind", "social")
   const byId = new Map(evidence.map((e) => [e.id, e]))
   const pairs: PairView[] = (pairRows ?? []).flatMap((p) => {
@@ -148,6 +155,17 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           <div className="min-w-0 lg:col-span-7"><Scorecard projectId={id} sc={scorecard} rejected={rejected} /></div>
           <div className="lg:col-span-5 max-lg:order-first"><ProjectMap center={center} radiusM={radius} points={points} project={project} /></div>
         </div>
+        {cost && grant && (
+          <div className="mt-10 grid gap-3 border-t border-line pt-8">
+            <h3 className="text-title">Cost per verified outcome</h3>
+            <p className="text-small">Grant {inr(grant)}{project.organization ? ` to ${project.organization}` : ""}. Counted only from verified photos (trust 80+ or approved).</p>
+            <div className="flex flex-wrap gap-x-10 gap-y-3">
+              <p><b className="text-data-xl">{cost.perPhoto !== null ? inr(cost.perPhoto) : "n/a"}</b><br /><span className="text-small">per verified photo ({verifiedIds.size})</span></p>
+              <p><b className="text-data-xl">{cost.perSpot !== null ? inr(cost.perSpot) : "n/a"}</b><br /><span className="text-small">per verified before/after spot ({verifiedSpots})</span></p>
+              {cost.releasableInr !== null && <p><b className="text-data-xl">{inr(cost.releasableInr)}</b><br /><span className="text-small">ready to release on proof ({pay?.releasable}%)</span></p>}
+            </div>
+          </div>
+        )}
         {gaps && (
           <div className="mt-10 grid gap-4 border-t border-line pt-8">
             <h3 className="text-title">Evidence gaps: what is missing</h3>
@@ -218,6 +236,8 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
           <h3 className="text-title">Live donor link</h3>
           <p className="text-small">A public page that updates as new evidence is verified: numbers, payment stages, latest photos (faces pixelated), reel and satellite view. Share it, or embed it on a donation page.</p>
           <p className="text-data flex flex-wrap items-center gap-2 break-all"><a href={`/live/${id}`} target="_blank" rel="noreferrer" className="text-accent-ink underline">{`${appUrl}/live/${id}`}</a><CopyButton value={`${appUrl}/live/${id}`} label="Copy live link" /></p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <p className="flex flex-wrap items-center gap-3"><img src={`/badge/${id}`} alt="Verified by Overlook badge" height={20} /><span className="text-small">Website badge (live verified share, links to the live page)</span><CopyButton value={`<a href="${appUrl}/live/${id}"><img src="${appUrl}/badge/${id}" alt="Verified by Overlook" height="20"></a>`} label="Copy badge code" /></p>
           <p className="text-data flex flex-wrap items-center gap-2 break-all text-fg-3">Embed: {`<iframe src="${appUrl}/live/${id}?embed=1" width="100%" height="900"></iframe>`}<CopyButton value={`<iframe src="${appUrl}/live/${id}?embed=1" width="100%" height="900" style="border:0"></iframe>`} label="Copy embed code" /></p>
         </div>
       </Section>
