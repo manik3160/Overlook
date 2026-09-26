@@ -2,6 +2,7 @@
 // whitespace) so it does not depend on key order, and a Postgres jsonb round trip (which reorders
 // keys) cannot change it. Anyone can recompute it: JSON.stringify with sorted keys, then SHA-256.
 import { createHash } from "node:crypto"
+import type { Annex } from "./compliance"
 
 export function canonicalJson(value: unknown): string {
   if (value === null) return "null"
@@ -42,4 +43,5 @@ export type ReportManifest = {
   scorecard: { photos: number; analyzed: number; avgTrust: number | null; verifiedPct: number | null; flaggedOrUnscored: number; phases: { gapDays: number; beforeCount: number; afterCount: number } | null; rows: ScorecardRow[] }
   pairs: ManifestPair[]
   assets: ManifestAsset[]
+  compliance?: Annex // CSR reports only; absent on older reports, so their hashes are unchanged
 }

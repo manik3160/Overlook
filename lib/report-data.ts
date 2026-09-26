@@ -3,10 +3,12 @@ import { supabase } from "@/lib/supabase"
 import { loadEvidence } from "@/lib/project-data"
 import { computeScorecard } from "@/lib/signals"
 import { reportSlideUrl, reportThumbUrl, type ReportManifest } from "@/lib/manifest"
+import { buildAnnex, type ComplianceInput } from "@/lib/compliance"
+import { loadMilestones } from "@/lib/milestones-data"
 
 const TITLES: Record<string, string> = { donor: "Donor impact evidence report", csr: "CSR impact evidence report" }
 
-export async function buildReportManifest(projectId: string, kind: string, reportId: string): Promise<ReportManifest | null> {
+export async function buildReportManifest(projectId: string, kind: string, reportId: string, compliance?: ComplianceInput): Promise<ReportManifest | null> {
   const { data: project } = await supabase.from("projects").select("*").eq("id", projectId).maybeSingle()
   if (!project) return null
   const { rows, rejected } = await loadEvidence(projectId)
@@ -15,6 +17,14 @@ export async function buildReportManifest(projectId: string, kind: string, repor
 
   const sorted = [...rows].sort((a, b) => (a.time ?? Date.parse(a.created_at)) - (b.time ?? Date.parse(b.created_at)) || a.public_id.localeCompare(b.public_id))
   const scorecard = computeScorecard(rows)
+  const pay = compliance ? await loadMilestones(projectId) : null
+  const annex = compliance
+    ? buildAnnex(
+        compliance,
+        rows.map((r) => ({ trust_score: r.trust_score, review_status: r.review_status, lat: r.lat, lng: r.lng, taken_at: r.taken_at, flags: (r.trust_flags ?? []).map((f) => ({ code: f.code })) })),
+        (pay?.statuses ?? []).map((s) => ({ title: s.milestone.title, release_pct: s.milestone.releasePct, ready: s.ready })),
+      )
+    : null
   return {
     schema: "overlook-report/1",
     report: { id: reportId, kind, title: TITLES[kind] ?? "Impact evidence report", generated_at: new Date().toISOString(), rejected_excluded: rejected },
@@ -37,5 +47,6 @@ export async function buildReportManifest(projectId: string, kind: string, repor
       trust_score: r.trust_score, review_status: r.review_status, taken_at: r.taken_at, lat: r.lat, lng: r.lng, etag: r.etag, phash: r.phash,
       flags: (r.trust_flags ?? []).map((f) => ({ code: f.code, severity: f.severity, reason: f.reason })),
     })),
+    ...(annex ? { compliance: annex } : {}),
   }
 }

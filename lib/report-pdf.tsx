@@ -84,6 +84,35 @@ function ReportDocument({ manifest: m, sha256, verifyUrl, qrDataUrl }: Props) {
         ))}
         <Text style={[s.muted, { marginTop: 8 }]}>Originals and the exact transformation URL for every photo are listed on the verification page: {verifyUrl}</Text>
       </Page>
+
+      {m.compliance && (
+        <Page size="A4" style={s.page}>
+          <Text style={s.h1}>Annex: evidence for CSR reporting</Text>
+          <Text style={s.muted}>{p.name}</Text>
+          <Text style={s.h2}>Classification</Text>
+          <View style={s.row}><Text style={{ width: 150 }}>Schedule VII category</Text><Text style={{ width: 370 }}>{m.compliance.schedule_vii}</Text></View>
+          <View style={s.row}><Text style={{ width: 150 }}>UN SDGs</Text><Text style={{ width: 370 }}>{m.compliance.sdgs.length ? m.compliance.sdgs.map((g) => `SDG ${g.number} ${g.name}`).join("; ") : "none selected"}</Text></View>
+          <Text style={s.h2}>Evidence quality</Text>
+          {([
+            ["Photos in this report", String(m.compliance.evidence.photos)],
+            ["Verified (trust 80+ or approved)", `${m.compliance.evidence.verified}${m.compliance.evidence.verified_pct !== null ? ` (${m.compliance.evidence.verified_pct}%)` : ""}`],
+            ["Flagged for review", String(m.compliance.evidence.flagged_for_review)],
+            ["Not scored yet", String(m.compliance.evidence.not_scored)],
+            ["Captured live and signed on device", String(m.compliance.evidence.captured_live)],
+            ["With location / with time", `${m.compliance.evidence.with_location} / ${m.compliance.evidence.with_time}`],
+          ] as const).map(([k, v]) => <View key={k} style={s.row}><Text style={{ width: 250 }}>{k}</Text><Text>{v}</Text></View>)}
+          {m.compliance.milestones.length > 0 && (
+            <>
+              <Text style={s.h2}>Payment stages (Pay-on-Proof)</Text>
+              {m.compliance.milestones.map((ms) => <View key={ms.title} style={s.row}><Text style={{ width: 250 }}>{ms.title} ({ms.release_pct}%)</Text><Text>{ms.ready ? "Evidence complete" : "Evidence still coming"}</Text></View>)}
+            </>
+          )}
+          <Text style={s.h2}>Integrity</Text>
+          <Text style={s.mono}>SHA-256 {sha256}</Text>
+          <Text style={[s.muted, { marginTop: 4 }]}>Verify at {verifyUrl}</Text>
+          <Text style={[s.muted, { marginTop: 14 }]}>{m.compliance.note}</Text>
+        </Page>
+      )}
     </Document>
   )
 }

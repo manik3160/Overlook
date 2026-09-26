@@ -91,6 +91,7 @@ export default async function StoryPage(props: PageProps<"/story/[projectId]">) 
       <footer className="grid gap-2 border-t border-line pt-4">
         <p className="text-small">Built from {m.verified_photos} verified photos (of {m.total_photos} uploaded). Only photos with a trust score of 80+ or approved by a reviewer are used. Faces are pixelated.</p>
         <p className="text-small flex flex-wrap items-center gap-x-1">
+          <a href={`/live/${projectId}`} className="text-accent-ink underline">See the live page</a> ·{" "}
           {m.story.narrative_source === "gemini" ? "Narrative written by AI from these facts only." : "Narrative generated from a fixed template using these facts only."} Published {formatDay(report.created_at)}.
           <span className={intact ? "inline-flex items-center gap-1 text-verified" : "text-suspicious"}><Fingerprint size={13} strokeWidth={1.5} aria-hidden="true" />{intact ? "Integrity check passed." : "Integrity check FAILED."}</span>
         </p>

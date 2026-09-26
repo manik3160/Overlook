@@ -12,6 +12,13 @@ import StoryPanel from "@/components/StoryPanel"
 import ReelPanel, { type ReelView } from "@/components/ReelPanel"
 import SatellitePanel, { type SatelliteView } from "@/components/SatellitePanel"
 import GapsPanel from "@/components/GapsPanel"
+import CopyButton from "@/components/CopyButton"
+import MilestonesPanel from "@/components/MilestonesPanel"
+import ClaimsPanel, { type ClaimCheckView } from "@/components/ClaimsPanel"
+import { loadMilestones } from "@/lib/milestones-data"
+import { templateMilestones } from "@/lib/milestones"
+import { suggestCompliance } from "@/lib/compliance"
+import { TAXONOMY } from "@/lib/taxonomy"
 import { loadGaps, shotListQr, shotListUrl } from "@/lib/gaps-data"
 import PairsPanel, { type PairView } from "@/components/PairsPanel"
 import SectionNav from "@/components/SectionNav"
@@ -70,7 +77,11 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const satellite: SatelliteView | null = satRow
     ? { ...satRow.manifest, source: satRow.manifest.satellite.source, generatedAt: formatTime(satRow.created_at), intact: manifestHash(satRow.manifest) === satRow.manifest_sha256 }
     : null
-  const [gaps, gapsQr] = await Promise.all([loadGaps(id), shotListQr(id)])
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "")
+  const [gaps, gapsQr, pay] = await Promise.all([loadGaps(id), shotListQr(id), loadMilestones(id)])
+  const { data: claimRows } = await supabase.from("reports").select("id, created_at, summary:manifest->summary, text:manifest->>input_text").eq("project_id", id).eq("kind", "claims").order("created_at", { ascending: false }).limit(5)
+  const claimChecks: ClaimCheckView[] = ((claimRows ?? []) as { id: string; created_at: string; summary: { supported: number; partly: number; noEvidence: number }; text: string }[])
+    .map((r) => ({ id: r.id, checkedAt: formatTime(r.created_at), ...r.summary, snippet: r.text.slice(0, 60) }))
   const { count: storyCount } = await supabase.from("reports").select("id", { count: "exact", head: true }).eq("project_id", id).eq("kind", "social")
   const byId = new Map(evidence.map((e) => [e.id, e]))
   const pairs: PairView[] = (pairRows ?? []).flatMap((p) => {
@@ -172,13 +183,36 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       </Section>
 
       <Section id="reports" eyebrow="05 · Reports & verification" title="Sealed snapshots">
-        <ReportsPanel projectId={id} reports={reports} />
+        {pay && (
+          <div className="mb-10 grid gap-4 border-b border-line pb-8">
+            <h3 className="text-title">Pay-on-Proof: payment stages</h3>
+            <MilestonesPanel
+              projectId={id}
+              statuses={pay.statuses}
+              releasable={pay.releasable}
+              certificates={pay.certificates}
+              template={templateMilestones(project.activity_type, project.start_date, project.end_date)}
+              tagOptions={TAXONOMY.map((t) => t.name)}
+            />
+          </div>
+        )}
+        <div className="mb-10 grid gap-4 border-b border-line pb-8">
+          <h3 className="text-title">Claim Checker: does the evidence back the report?</h3>
+          <ClaimsPanel projectId={id} recent={claimChecks} />
+        </div>
+        <ReportsPanel projectId={id} reports={reports} suggested={suggestCompliance(project.activity_type)} />
       </Section>
 
       <Section id="campaign" eyebrow="06 · Campaign & story" title="Cards for sharing">
         {campaign && <CampaignCards campaign={campaign} />}
         <StoryPanel projectId={id} hasStory={(storyCount ?? 0) > 0} />
         <ReelPanel endpoint={`/api/projects/${id}/reel`} reel={reel} />
+        <div className="grid gap-2">
+          <h3 className="text-title">Live donor link</h3>
+          <p className="text-small">A public page that updates as new evidence is verified: numbers, payment stages, latest photos (faces pixelated), reel and satellite view. Share it, or embed it on a donation page.</p>
+          <p className="text-data flex flex-wrap items-center gap-2 break-all"><a href={`/live/${id}`} target="_blank" rel="noreferrer" className="text-accent-ink underline">{`${appUrl}/live/${id}`}</a><CopyButton value={`${appUrl}/live/${id}`} label="Copy live link" /></p>
+          <p className="text-data flex flex-wrap items-center gap-2 break-all text-fg-3">Embed: {`<iframe src="${appUrl}/live/${id}?embed=1" width="100%" height="900"></iframe>`}<CopyButton value={`<iframe src="${appUrl}/live/${id}?embed=1" width="100%" height="900" style="border:0"></iframe>`} label="Copy embed code" /></p>
+        </div>
       </Section>
 
       <p className="text-small"><Link href="/dashboard" className="text-accent-ink hover:underline">← Back to overview</Link></p>

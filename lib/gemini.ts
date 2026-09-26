@@ -3,6 +3,7 @@ import { GoogleGenAI, ApiError, ThinkingLevel } from "@google/genai"
 import { z } from "zod"
 import { RateLimitError } from "@/lib/errors"
 import { factsText, type Narrative, type StoryFacts } from "@/lib/story"
+import { extractedClaimsSchema, type Claim } from "@/lib/claims"
 
 // Free-tier daily quotas differ a lot per model (gemini-3.6-flash allows only 20 requests/day), so the default is a flash-lite model and it is configurable.
 const VISION_MODEL = process.env.GEMINI_VISION_MODEL || "gemini-3.1-flash-lite"
@@ -133,6 +134,50 @@ If there is no intelligible speech, return {"language": "none", "transcript": ""
       config: { responseMimeType: "application/json", temperature: 0, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
     })
     return transcriptSchema.parse(JSON.parse(res.text ?? ""))
+  } catch (err) {
+    return rethrow(err)
+  }
+}
+
+// Claim Checker: split an NGO report paragraph into atomic, checkable claims. The model only extracts; the
+// verdicts are decided by lib/claims.ts against verified photos.
+export async function extractClaims(reportText: string): Promise<Claim[]> {
+  const prompt = `Below is text from an NGO or CSR project report. Split it into at most 8 atomic factual claims that photos of the project site could support or not.
+Return ONLY JSON: {"claims": [{"text": the claim as written, "type": "activity" | "change" | "quantity" | "date", "subject": a short plain description of what a photo proving it would show (for example "people collecting litter on a riverbank"), "number": the number claimed or null, "unit": its unit or null, "dateFrom": "YYYY-MM-DD" or null, "dateTo": "YYYY-MM-DD" or null}]}
+Use "change" for before/after improvements, "quantity" when a number is the point, "date" when the timing is the point, otherwise "activity". For a month use its first and last day. Skip opinions, goals and thanks. Do not invent claims.
+
+REPORT TEXT:
+${reportText}`
+  try {
+    const res = await ai.models.generateContent({ model: VISION_MODEL, contents: prompt, config: { responseMimeType: "application/json", temperature: 0, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } } })
+    return extractedClaimsSchema.parse(JSON.parse(res.text ?? "")).claims
+  } catch (err) {
+    return rethrow(err)
+  }
+}
+
+const claimMatchSchema = z.object({ matches: z.array(z.object({ claim: z.number().int().min(0), photo_ids: z.array(z.string()) })) })
+export type ClaimCandidate = { id: string; caption: string; tags: string[]; date: string | null }
+
+// Claim Checker, step 2: which photos DIRECTLY show each claim, judged from their AI captions, tags and dates.
+// Text similarity alone is too loose (every photo of a wooded site "matches" "planted trees"). Returns only
+// ids from the candidate list; anything else the model says is dropped.
+export async function matchClaimsToPhotos(claims: Claim[], photos: ClaimCandidate[]): Promise<Map<number, string[]>> {
+  const known = new Set(photos.map((p) => p.id))
+  const prompt = `You check claims from an NGO report against descriptions of the project's photos.
+A photo supports a claim ONLY if its caption or tags directly show what the claim says (the activity, the object, the state of the site). Similar surroundings are NOT enough: trees in the background do not show "trees were planted", a building does not show "a library was built". Ignore numbers (photos cannot count) and dates (checked separately). When unsure, leave the photo out.
+Return ONLY JSON: {"matches": [{"claim": claim index, "photo_ids": [ids of supporting photos, possibly empty]}]} with one entry per claim.
+
+CLAIMS:
+${claims.map((c, i) => `${i}. ${c.text}`).join("\n")}
+
+PHOTOS:
+${photos.map((p) => `${p.id} | ${p.date ?? "undated"} | tags: ${p.tags.join(", ") || "none"} | ${p.caption}`).join("\n")}`
+  try {
+    const res = await ai.models.generateContent({ model: VISION_MODEL, contents: prompt, config: { responseMimeType: "application/json", temperature: 0, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } } })
+    const out = new Map<number, string[]>()
+    for (const m of claimMatchSchema.parse(JSON.parse(res.text ?? "")).matches) if (m.claim < claims.length) out.set(m.claim, [...new Set(m.photo_ids.filter((id) => known.has(id)))])
+    return out
   } catch (err) {
     return rethrow(err)
   }

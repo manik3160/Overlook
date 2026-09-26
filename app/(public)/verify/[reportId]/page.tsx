@@ -1,6 +1,9 @@
 import { notFound, redirect } from "next/navigation"
 import type { Metadata } from "next"
 import VerifySeal from "@/components/VerifySeal"
+import MilestoneCertificate, { type CertificateManifest } from "@/components/MilestoneCertificate"
+import ClaimsResult, { type ClaimsManifest } from "@/components/ClaimsResult"
+import TimestampPanel from "@/components/TimestampPanel"
 import TrustBadge from "@/components/TrustBadge"
 import StatFigure from "@/components/StatFigure"
 import { flagTitle } from "@/components/flag-copy"
@@ -22,10 +25,16 @@ export default async function VerifyPage(props: PageProps<"/verify/[reportId]">)
   const { reportId } = await props.params
   if (!UUID.test(reportId)) notFound()
   const { data: report } = await supabase.from("reports").select("id, kind, manifest, manifest_sha256, pdf_public_id, created_at").eq("id", reportId).maybeSingle()
-  if (!report) notFound()
+  if (!report || report.kind === "timestamp") notFound()
 
   const raw = report.manifest as { schema?: string; project?: { id?: string } }
   if (raw.schema?.startsWith("overlook-story") && raw.project?.id) redirect(`/story/${raw.project.id}`)
+  if (raw.schema?.startsWith("overlook-claims")) {
+    return <><ClaimsResult m={report.manifest as ClaimsManifest} recorded={report.manifest_sha256} recomputed={manifestHash(report.manifest)} /><TimestampPanel reportId={report.id} /></>
+  }
+  if (raw.schema?.startsWith("overlook-milestone")) {
+    return <><MilestoneCertificate m={report.manifest as CertificateManifest} recorded={report.manifest_sha256} recomputed={manifestHash(report.manifest)} /><TimestampPanel reportId={report.id} /></>
+  }
   const manifest = report.manifest as ReportManifest
   const recomputed = manifestHash(manifest)
   const match = recomputed === report.manifest_sha256
@@ -102,6 +111,22 @@ export default async function VerifyPage(props: PageProps<"/verify/[reportId]">)
         </section>
       )}
 
+      {manifest.compliance && (
+        <section className="mb-14 grid gap-4" aria-labelledby="v-csr">
+          <Eyebrow>CSR compliance annex</Eyebrow>
+          <h2 id="v-csr" className="sr-only">CSR compliance annex</h2>
+          <KeyValue rows={[
+            ["Schedule VII category", manifest.compliance.schedule_vii],
+            ["UN SDGs", manifest.compliance.sdgs.length ? manifest.compliance.sdgs.map((g) => `SDG ${g.number} ${g.name}`).join("; ") : NA],
+            ["Verified photos", `${manifest.compliance.evidence.verified} of ${manifest.compliance.evidence.photos}${manifest.compliance.evidence.verified_pct !== null ? ` (${manifest.compliance.evidence.verified_pct}%)` : ""}`],
+            ["Flagged / not scored", `${manifest.compliance.evidence.flagged_for_review} / ${manifest.compliance.evidence.not_scored}`],
+            ["Captured live", String(manifest.compliance.evidence.captured_live)],
+            ...manifest.compliance.milestones.map((ms): [string, string] => [`Stage: ${ms.title} (${ms.release_pct}%)`, ms.ready ? "evidence complete" : "evidence still coming"]),
+          ]} />
+          <p className="text-small max-w-[68ch]">{manifest.compliance.note}</p>
+        </section>
+      )}
+
       <section className="grid gap-4" aria-labelledby="v-photos">
         <Eyebrow>04 · Every photo behind this report</Eyebrow>
         <h2 id="v-photos" className="text-h2">{assets.length} photos, each traced to its original</h2>
@@ -127,6 +152,7 @@ export default async function VerifyPage(props: PageProps<"/verify/[reportId]">)
           ))}
         </ul>
       </section>
+      <TimestampPanel reportId={report.id} />
     </>
   )
 }

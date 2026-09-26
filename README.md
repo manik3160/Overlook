@@ -27,7 +27,11 @@ Built for Code Cubicle 6.0 (Problem Statement 02, Cloudinary track).
 | Projects | Auto-suggested projects (GPS + time clustering), map with geofence, timeline, manual assignment. |
 | Search | Describe what you want ("garbage near the road"); semantic search plus filters (project, tag, trust, date, type) and exact-word transcript search for videos. |
 | Impact | Before/after pairing with a slider and an AI change summary, and an Impact Scorecard whose every number is clickable. Optional **satellite cross-check** (Sentinel-2, same season a year apart, precomputed with `npm run satellite -- <projectId>`): says whether the change seen from space is consistent with the claim, never that it proves it. |
-| Reports | Donor / CSR PDF (scorecard, pairs, evidence table, QR) plus a public verification page. |
+| Reports | Donor / CSR PDF (scorecard, pairs, evidence table, QR) plus a public verification page. CSR PDFs add a **compliance annex** (Schedule VII category, UN SDGs, evidence quality, payment stages; states it is not an independent impact assessment). |
+| Pay-on-Proof | Payment stages per project ("40% on completion") that turn **ready to release** only when their verified evidence exists (photo count, tags, date window, before/after pair). A ready stage can be sealed as a **release certificate** on the verify page. |
+| Claim Checker | Paste text from an NGO report: Gemini splits it into claims, a second call says which photos' descriptions directly show each claim, and each claim is marked Supported / Partly supported / **No evidence found** (never "false"). Sealed and shareable. |
+| Live donor link | `/live/[projectId]` (embeddable with `?embed=1`): live numbers, payment stages, latest verified photos (faces pixelated), reel and satellite view. |
+| Public timestamps | Every report, certificate and claim check is anchored with **OpenTimestamps** (only the SHA-256 is sent; free; ends up in Bitcoin). The verify page shows pending / anchored-in-block-N and offers the `.json` + `.ots` files to check on opentimestamps.org. |
 | Campaign | Instagram, story and **Hindi** WhatsApp cards (faces pixelated), a public impact-story page and a **highlight reel** video (Cloudinary splicing, crossfades), all built only from verified evidence. |
 | Video | Transcript (Gemini), key frames every ~15 s as analyzable assets, frame-to-exact-second links, searchable spoken words. |
 
@@ -99,7 +103,7 @@ You need Node 20+, and free accounts on **Supabase**, **Cloudinary** and **Googl
    cp .env.example .env.local      # then fill it in (table below)
    ```
 2. **Supabase**: create a project, then run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) and then
-   [`0002_capture.sql`](supabase/migrations/0002_capture.sql) in the SQL Editor (or with the Supabase CLI). It creates the tables, enables pgvector and adds the `match_assets` search function.
+   [`0002_capture.sql`](supabase/migrations/0002_capture.sql) and [`0003_milestones.sql`](supabase/migrations/0003_milestones.sql) in the SQL Editor (or with the Supabase CLI). It creates the tables, enables pgvector and adds the `match_assets` search function.
 3. **Cloudinary**
    - Console, Add-ons: subscribe to **Cloudinary AI Vision**.
    - Settings, Upload, Upload presets: add a preset with **Signing mode = Signed**; its name goes in `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`.
