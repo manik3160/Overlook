@@ -24,6 +24,8 @@ export default function CloudImport({ apiKey }: { apiKey: string }) {
   const router = useRouter()
   const [saved, setSaved] = useState(0)
   const [errors, setErrors] = useState<string[]>([])
+  // The widget's first open loads Cloudinary's page (~10 s on a cold start): say so instead of looking frozen.
+  const [opening, setOpening] = useState(false)
   // Cloudinary's widget is its own page (an iframe), so it gets the app's palette and font explicitly (globals.css tokens).
   const dark = useSyncExternalStore(subscribeTheme, () => document.documentElement.classList.contains("dark"), () => true)
   const palette = dark
@@ -69,14 +71,21 @@ export default function CloudImport({ apiKey }: { apiKey: string }) {
         onSuccess={(result: CloudinaryUploadWidgetResults) => {
           if (result.info && typeof result.info === "object") void save(result.info as unknown as Info)
         }}
+        onDisplayChanged={(r: CloudinaryUploadWidgetResults) => { if (r.info === "shown") setOpening(false) }}
         onQueuesEnd={() => {
           window.dispatchEvent(new CustomEvent(UPLOADED_EVENT, { detail: { uploaded: 1 } }))
           router.refresh()
         }}
       >
         {({ open }) => (
-          <button type="button" onClick={() => open()} className={buttonVariants({ variant: "outline" }) + " w-fit"}>
-            Import from Google Drive, a link or camera
+          <button
+            type="button"
+            disabled={opening}
+            aria-busy={opening}
+            onClick={() => { setOpening(true); open(); setTimeout(() => setOpening(false), 25_000) }}
+            className={buttonVariants({ variant: "outline" }) + " w-fit"}
+          >
+            {opening ? <><span aria-hidden="true" className="size-2 animate-pulse rounded-full bg-accent-ink" />Opening Cloudinary…</> : "Import from Google Drive, a link or camera"}
           </button>
         )}
       </CldUploadWidget>
