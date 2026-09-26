@@ -5,6 +5,7 @@ import { ArrowUpFromLine, Check, Circle, Loader, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { readExif } from "@/lib/exif"
+import { uploadToCloudinary } from "@/lib/upload-client"
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024
@@ -31,32 +32,6 @@ function validate(file: File): string | null {
   const max = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES
   if (file.size > max) return `too large (${(file.size / 1048576).toFixed(1)} MB; max ${max / 1048576} MB)`
   return null
-}
-
-async function uploadToCloudinary(file: File) {
-  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
-  if (!cloud || !preset) throw new Error("Cloudinary env vars are missing")
-
-  const params = { folder: "evidence/inbox", phash: "true", timestamp: Math.round(Date.now() / 1000), upload_preset: preset }
-  const signRes = await fetch("/api/sign-cloudinary-params", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ paramsToSign: params }),
-  })
-  if (!signRes.ok) throw new Error((await signRes.json()).error ?? "signing failed")
-  const { signature, apiKey } = await signRes.json()
-
-  const form = new FormData()
-  form.append("file", file)
-  form.append("api_key", apiKey)
-  form.append("signature", signature)
-  for (const [k, v] of Object.entries(params)) form.append(k, String(v))
-
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/auto/upload`, { method: "POST", body: form })
-  const body = await res.json()
-  if (!res.ok) throw new Error(body.error?.message ?? "upload failed")
-  return body
 }
 
 const metaLabel = (e: { lat: number | null; lng: number | null; takenAt: string | null }) => {

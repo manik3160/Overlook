@@ -19,6 +19,7 @@ Built for Code Cubicle 6.0 (Problem Statement 02, Cloudinary track).
 
 | Area | What you get |
 |---|---|
+| Field camera | **Ghost Camera** (`/capture`): the phone shows the earlier photo as a see-through overlay so the retake lines up with it, and **signs** the photo, its GPS fix and the time on the device (WebCrypto key + one-time server session). Verified captures get a "Captured live" flag; retakes pair with their original automatically and build a **time-lapse** of the spot. `npm run check-capture` runs the security checks. |
 | Upload | Multi-file photo and video upload, signed and direct to Cloudinary. Location and time are read in the browser first (photo EXIF, and MP4/MOV atoms for video). Size limits are enforced before upload. |
 | Analysis | One click runs a cached pipeline per photo: Gemini (caption, 6 visual signals, 3 checks) then Cloudinary AI Vision (taxonomy tags) then an embedding. Nothing is ever paid for twice. |
 | Trust | Score 0-100 with explainable flags, a review queue (approve / reject) and an asset page with the evidence. |
@@ -96,8 +97,8 @@ You need Node 20+, and free accounts on **Supabase**, **Cloudinary** and **Googl
    npm install
    cp .env.example .env.local      # then fill it in (table below)
    ```
-2. **Supabase**: create a project, then run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) in the
-   SQL Editor (or with the Supabase CLI). It creates the tables, enables pgvector and adds the `match_assets` search function.
+2. **Supabase**: create a project, then run [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) and then
+   [`0002_capture.sql`](supabase/migrations/0002_capture.sql) in the SQL Editor (or with the Supabase CLI). It creates the tables, enables pgvector and adds the `match_assets` search function.
 3. **Cloudinary**
    - Console, Add-ons: subscribe to **Cloudinary AI Vision**.
    - Settings, Upload, Upload presets: add a preset with **Signing mode = Signed**; its name goes in `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`.

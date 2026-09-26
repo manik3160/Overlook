@@ -82,6 +82,21 @@ describe("computeTrust", () => {
     expect(r.flags[0].severity).toBe("info")
     expect(r.score).toBe(60)
   })
+  it("a live signed capture adds CAPTURED_LIVE and is not capped, even without EXIF", () => {
+    const r = run({ asset: asset({ has_exif: false, captured_live: true }) })
+    expect(codes(r)).toEqual(["CAPTURED_LIVE"])
+    expect(r.flags[0].severity).toBe("info")
+    expect(r.score).toBe(100)
+  })
+  it("a live capture still loses points for real problems (wrong place)", () => {
+    const r = run({ asset: asset({ has_exif: false, captured_live: true, lat: 28.6, lng: 77.2 }) })
+    expect(codes(r)).toEqual(["OUTSIDE_GEOFENCE", "CAPTURED_LIVE"])
+    expect(r.score).toBe(75)
+  })
+  it("wording never claims proof", () => {
+    const r = run({ asset: asset({ captured_live: true }) })
+    expect(r.flags[0].reason).not.toMatch(/fake|fraud|guarantee|proof of/i)
+  })
   it("deductions stack and clamp at 0", () => {
     const r = run({
       asset: asset({ lat: 28.6, lng: 77.2, taken_at: "2026-01-01T00:00:00Z", has_exif: true }),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { MAX_EXTRA_PHOTOS, planReel, reelSeconds, reelUrl, slideUrl, type ReelPhoto } from "./reel"
+import { MAX_EXTRA_PHOTOS, planReel, planTimelapse, reelSeconds, reelUrl, slideUrl, TIMELAPSE_PACE, type ReelPhoto } from "./reel"
 
 const photo = (id: string, peopleWorking = 0, trust = 100, takenAt: string | null = "2026-06-12T05:00:00Z"): ReelPhoto => ({ publicId: id, takenAt, peopleWorking, trust })
 const base = { projectName: "Lake cleanup", verifiedCount: 5, headline: "Garbage visible: 4 of 5 before, 0 of 3 after", formatDay: (iso: string) => iso.slice(0, 10) }
@@ -68,5 +68,20 @@ describe("URLs", () => {
   it("reel length subtracts one crossfade per slide", () => {
     expect(reelSeconds(0)).toBe(0)
     expect(reelSeconds(2)).toBe(5) // 1 s lead + 2 x 3 s - 2 x 1 s fade
+  })
+})
+
+describe("time-lapse", () => {
+  const day = (iso: string) => iso.slice(0, 10)
+  it("orders the chain oldest first and labels before / retakes / latest", () => {
+    const slides = planTimelapse([{ publicId: "c", takenAt: "2026-10-20T05:00:00Z" }, { publicId: "a", takenAt: "2026-10-01T05:00:00Z" }, { publicId: "b", takenAt: "2026-10-08T05:00:00Z" }], day)
+    expect(slides.map((s) => s.kind === "photo" && `${s.publicId}:${s.label}`)).toEqual(["a:BEFORE · 2026-10-01", "b:RETAKE 1 · 2026-10-08", "c:LATEST · 2026-10-20"])
+  })
+  it("needs at least two dated photos", () => {
+    expect(planTimelapse([{ publicId: "a", takenAt: "2026-10-01T05:00:00Z" }, { publicId: "b", takenAt: null }], day)).toEqual([])
+  })
+  it("uses the quicker pace in the URL and the length", () => {
+    expect(reelUrl("demo", ["x"], { pace: TIMELAPSE_PACE })).toContain("du_1),l_x,c_fill,w_1080,h_1080,du_2/")
+    expect(reelSeconds(3, TIMELAPSE_PACE)).toBe(4) // 1 s lead + 3 x 2 s - 3 x 1 s
   })
 })

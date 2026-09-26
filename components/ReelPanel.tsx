@@ -7,8 +7,15 @@ import { InlineNotice } from "@/components/ui/notice"
 
 export type ReelView = { url: string; downloadUrl: string; seconds: number; generatedAt: string }
 
-// Highlight reel: verified photos spliced into one video by Cloudinary (faces pixelated, no AI calls).
-export default function ReelPanel({ projectId, reel }: { projectId: string; reel: ReelView | null }) {
+type Copy = { build: string; rebuild: string; busy: string; help: string }
+const REEL_COPY: Copy = {
+  build: "Build highlight reel", rebuild: "Rebuild highlight reel", busy: "Building reel…",
+  help: "Title, best before/after pair, up to 4 more verified photos, closing number. Only verified photos (trust 80+ or approved); faces are pixelated. No AI credits.",
+}
+
+// A Cloudinary-spliced video of verified photos (faces pixelated, no AI calls): the project highlight reel,
+// or (with `endpoint` + `copy`) the Ghost Camera time-lapse of one spot.
+export default function ReelPanel({ endpoint, reel, copy = REEL_COPY }: { endpoint: string; reel: ReelView | null; copy?: Copy }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,9 +24,9 @@ export default function ReelPanel({ projectId, reel }: { projectId: string; reel
     setBusy(true)
     setError(null)
     try {
-      const res = await fetch(`/api/projects/${projectId}/reel`, { method: "POST" })
+      const res = await fetch(endpoint, { method: "POST" })
       const body = await res.json()
-      if (!res.ok) setError(body.error ?? "Could not build the reel")
+      if (!res.ok) setError(body.error ?? "Could not build the video")
     } catch (err) {
       setError(err instanceof Error ? err.message : "failed")
     } finally {
@@ -38,12 +45,12 @@ export default function ReelPanel({ projectId, reel }: { projectId: string; reel
       )}
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant={reel ? "outline" : "default"} onClick={generate} disabled={busy} aria-busy={busy || undefined}>
-          {busy ? "Building reel…" : reel ? "Rebuild highlight reel" : "Build highlight reel"}
+          {busy ? copy.busy : reel ? copy.rebuild : copy.build}
         </Button>
         {reel && <a href={reel.downloadUrl} className={buttonVariants({ variant: "outline", size: "sm" })}>Download MP4</a>}
       </div>
       {error && <InlineNotice tone="error">{error}</InlineNotice>}
-      <p className="text-small text-fg-3">Title, best before/after pair, up to 4 more verified photos, closing number. Only verified photos (trust 80+ or approved); faces are pixelated. No AI credits.</p>
+      <p className="text-small text-fg-3">{copy.help}</p>
     </div>
   )
 }

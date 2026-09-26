@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { cosine, findPairs, type PairCandidate } from "./pairing"
+import { cosine, findPairs, pairGhosts, type GhostCandidate, type PairCandidate } from "./pairing"
 
 const DAY = 86_400_000
 const T0 = Date.UTC(2026, 8, 1)
@@ -53,5 +53,32 @@ describe("cosine", () => {
     expect(cosine([1, 2], [1, 2])).toBeCloseTo(1)
     expect(cosine([1, 0], [0, 1])).toBe(0)
     expect(cosine(null, [1])).toBe(0)
+  })
+})
+
+describe("pairGhosts", () => {
+  const day = 86_400_000
+  const g = (id: string, days: number, ghostId: string | null = null, lat = 44.75): GhostCandidate => ({ id, lat, lng: -122.4, time: Date.UTC(2026, 9, 1) + days * day, embedding: null, ghostId })
+
+  it("pairs a retake with its ghost, whatever the distance or gap", () => {
+    const { pairs, usedIds } = pairGhosts([g("b", 0), g("a", 0.2, "b", 44.751)])
+    expect(pairs).toHaveLength(1)
+    expect(pairs[0]).toMatchObject({ beforeId: "b", afterId: "a", daysApart: 0 })
+    expect(pairs[0].distanceM).toBeGreaterThan(100) // far from the ghost, still paired: the worker chose the spot
+    expect([...usedIds].sort()).toEqual(["a", "b"])
+  })
+
+  it("uses the most recent retake as the after, leaving earlier retakes unpaired", () => {
+    const { pairs, usedIds } = pairGhosts([g("b", 0), g("r1", 10, "b"), g("r2", 20, "b")])
+    expect(pairs.map((p) => p.afterId)).toEqual(["r2"])
+    expect(usedIds.has("r1")).toBe(false)
+  })
+
+  it("ignores a ghost link to a missing photo, itself, or a later photo", () => {
+    expect(pairGhosts([g("a", 5, "missing"), g("s", 1, "s"), g("later", 10), g("early", 2, "later")]).pairs).toEqual([])
+  })
+
+  it("does nothing when no photo has a ghost", () => {
+    expect(pairGhosts([g("x", 0), g("y", 9)]).pairs).toEqual([])
   })
 })

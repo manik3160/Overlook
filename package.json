@@ -13,6 +13,7 @@
     "upload-font": "tsx scripts/upload-font.ts",
     "upload-reel-base": "tsx scripts/upload-reel-base.ts",
     "satellite": "tsx scripts/satellite.ts",
+    "check-capture": "tsx scripts/check-capture.ts",
     "seed": "tsx scripts/seed-demo.ts",
     "seed:real": "tsx scripts/seed-real.ts",
     "check-demo": "tsx scripts/check-demo-flow.mts"

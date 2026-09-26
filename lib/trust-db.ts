@@ -3,9 +3,9 @@ import { selectAll, supabase } from "@/lib/supabase"
 import { canonicalJson } from "@/lib/manifest"
 import { computeTrust, type TrustAsset, type TrustChecks, type TrustFlag, type TrustProject } from "@/lib/trust"
 
-type Row = TrustAsset & { status: string; tags: string[] | null; caption: string | null; resource_type: string; trust_score: number | null; trust_flags: TrustFlag[] | null }
+type Row = Omit<TrustAsset, "captured_live"> & { capture_proof: { verified?: boolean } | null; status: string; tags: string[] | null; caption: string | null; resource_type: string; trust_score: number | null; trust_flags: TrustFlag[] | null }
 
-const ROW_COLS = "id, created_at, etag, phash, project_id, parent_asset_id, lat, lng, taken_at, has_exif, status, tags, caption, resource_type, trust_score, trust_flags"
+const ROW_COLS = "id, created_at, etag, phash, project_id, parent_asset_id, lat, lng, taken_at, has_exif, status, tags, caption, resource_type, trust_score, trust_flags, capture_proof"
 const UPDATE_CONCURRENCY = 10
 
 // Runs `fn` over `items` with at most `limit` in flight (plain Promise pool, no dependency).
@@ -47,7 +47,7 @@ export async function recomputeTrust(ids?: string[]): Promise<number> {
   for (const asset of targets) {
     const analysed = asset.status === "done"
     const result = computeTrust({
-      asset,
+      asset: { ...asset, captured_live: asset.capture_proof?.verified === true },
       project: asset.project_id ? projectById.get(asset.project_id) ?? null : null,
       others: all, // computeTrust only compares against EARLIER uploads, so the asset itself never matches
       checks: checksFor(asset),

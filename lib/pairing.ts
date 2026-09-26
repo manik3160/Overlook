@@ -42,3 +42,27 @@ export function findPairs(befores: PairCandidate[], afters: PairCandidate[], opt
   }
   return pairs
 }
+
+// Ghost Camera: a photo retaken with another photo's ghost overlay is paired with THAT photo, whatever the
+// distance or the gap in days (the field worker chose the spot on purpose). If a spot was retaken several
+// times, the most recent retake is the "after"; the earlier retakes stay available for a time-lapse.
+export type GhostCandidate = PairCandidate & { ghostId: string | null }
+export function pairGhosts(all: GhostCandidate[]): { pairs: Pair[]; usedIds: Set<string> } {
+  const byId = new Map(all.map((c) => [c.id, c]))
+  const latestRetake = new Map<string, GhostCandidate>()
+  for (const c of all) {
+    const before = c.ghostId ? byId.get(c.ghostId) : undefined
+    if (!before || before.id === c.id || c.time < before.time) continue
+    const best = latestRetake.get(before.id)
+    if (!best || c.time > best.time || (c.time === best.time && c.id > best.id)) latestRetake.set(before.id, c)
+  }
+  const pairs: Pair[] = []
+  const usedIds = new Set<string>()
+  for (const [beforeId, after] of latestRetake) {
+    const before = byId.get(beforeId)!
+    if (usedIds.has(beforeId) || usedIds.has(after.id)) continue // a photo is only in one pair
+    usedIds.add(beforeId).add(after.id)
+    pairs.push({ beforeId, afterId: after.id, distanceM: Math.round(haversineM(before, after) * 10) / 10, daysApart: Math.floor((after.time - before.time) / DAY_MS) })
+  }
+  return { pairs, usedIds }
+}

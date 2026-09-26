@@ -123,6 +123,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
         actions={
           <>
             <Sheet title="Edit project" trigger="Edit" size="default"><ProjectForm mode="edit" projectId={id} submitLabel="Save changes" initial={project} /></Sheet>
+            <Link href={`/capture?project=${id}`} className={buttonVariants({ variant: "outline" })}>Field camera</Link>
             <a href="#reports" className={buttonVariants()}>Reports &amp; PDF</a>
           </>
         }
@@ -168,7 +169,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
       <Section id="campaign" eyebrow="06 · Campaign & story" title="Cards for sharing">
         {campaign && <CampaignCards campaign={campaign} />}
         <StoryPanel projectId={id} hasStory={(storyCount ?? 0) > 0} />
-        <ReelPanel projectId={id} reel={reel} />
+        <ReelPanel endpoint={`/api/projects/${id}/reel`} reel={reel} />
       </Section>
 
       <p className="text-small"><Link href="/dashboard" className="text-accent-ink hover:underline">← Back to overview</Link></p>

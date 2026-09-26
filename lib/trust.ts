@@ -17,6 +17,7 @@ export type TrustAsset = {
   lng: number | null
   taken_at: string | null
   has_exif: boolean
+  captured_live?: boolean // signed on the device at capture time and verified by the server (lib/capture.ts)
 }
 export type TrustOther = Pick<TrustAsset, "id" | "created_at" | "etag" | "phash" | "project_id" | "parent_asset_id">
 export type TrustProject = {
@@ -151,7 +152,11 @@ export function computeTrust(input: TrustInput): TrustResult {
     flags.push({ code: "IRRELEVANT", severity: "warning", reason: "Flagged for review: the image does not appear related to field or community work.", evidence: {} })
     deduction += TRUST_DEDUCTIONS.IRRELEVANT
   }
-  if (!asset.has_exif) {
+  const noMetadata = !asset.has_exif && !asset.captured_live
+  if (asset.captured_live) {
+    flags.push({ code: "CAPTURED_LIVE", severity: "info", reason: "Captured live: this photo, its location and its time were signed on the device at the moment of capture (this shows which device signed it, not that the location sensor was honest).", evidence: {} })
+  }
+  if (noMetadata) {
     flags.push({ code: "NO_METADATA", severity: "info", reason: "No location or time metadata: this photo can't be verified on its own (that is not a sign of tampering).", evidence: { cap: NO_METADATA_CAP } })
   }
   if (lowConfidence) {
@@ -159,7 +164,7 @@ export function computeTrust(input: TrustInput): TrustResult {
   }
 
   let score = 100 - deduction
-  if (!asset.has_exif) score = Math.min(score, NO_METADATA_CAP)
+  if (noMetadata) score = Math.min(score, NO_METADATA_CAP)
   score = Math.max(0, Math.min(100, score))
   return { score, band: trustBand(score), flags }
 }

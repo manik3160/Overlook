@@ -8,6 +8,7 @@ import CustodyStrip from "@/components/CustodyStrip"
 import ReviewButtons from "@/components/ReviewButtons"
 import AnalyzeOneButton from "@/components/AnalyzeOneButton"
 import CopyButton from "@/components/CopyButton"
+import ReelPanel, { type ReelView } from "@/components/ReelPanel"
 import { TileImage } from "@/components/EvidenceTile"
 import { Chip, Eyebrow, KeyValue, PageHeader, Panel } from "@/components/ui/layout"
 import { InlineNotice } from "@/components/ui/notice"
@@ -16,6 +17,7 @@ import { NA } from "@/lib/copy"
 import { formatTime } from "@/lib/dates"
 import { formatClock, playerUrl } from "@/lib/video"
 import { NO_METADATA_CAP, type TrustFlag } from "@/lib/trust"
+import { reelUrl, TIMELAPSE_PACE } from "@/lib/reel"
 
 export const dynamic = "force-dynamic"
 
@@ -25,6 +27,7 @@ type Asset = {
   status: string; tags: string[] | null; caption: string | null; signals: Record<string, unknown> | null
   trust_score: number | null; trust_flags: TrustFlag[] | null; review_status: string; project_id: string | null; created_at: string
   parent_asset_id: string | null; frame_second: number | null; transcript: string | null
+  capture_proof: { payload: { accuracyM: number | null; sha256: string; ghostAssetId: string | null }; deviceId: string; verifiedAt: string } | null
 }
 
 const shortId = (id: string) => id.split("/").pop() ?? id
@@ -46,6 +49,14 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
   const { data: frames } = asset.resource_type === "video"
     ? await supabase.from("assets").select("id, secure_url, resource_type, frame_second, status, trust_score, trust_flags, review_status").eq("parent_asset_id", asset.id).order("frame_second")
     : { data: null }
+  // Ghost Camera: retakes lined up with this photo, and the latest time-lapse of this spot.
+  const { data: retakes } = asset.resource_type === "image" ? await supabase.from("assets").select("id").eq("capture_proof->payload->>ghostAssetId", asset.id) : { data: null }
+  const { data: lapseRow } = retakes?.length ? await supabase.from("reports").select("manifest, created_at").eq("kind", "timelapse").eq("manifest->>before_id", asset.id).order("created_at", { ascending: false }).limit(1).maybeSingle() : { data: null }
+  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const lapseSlides = ((lapseRow?.manifest?.slides ?? []) as { slide_public_id: string }[]).map((s) => s.slide_public_id)
+  const timelapse: ReelView | null = lapseRow && cloud && lapseSlides.length
+    ? { url: reelUrl(cloud, lapseSlides, { pace: TIMELAPSE_PACE }), downloadUrl: reelUrl(cloud, lapseSlides, { pace: TIMELAPSE_PACE, download: "overlook-timelapse" }), seconds: lapseRow.manifest.timelapse.seconds, generatedAt: formatTime(lapseRow.created_at) }
+    : null
   const second = asset.frame_second !== null ? Number(asset.frame_second) : null
   const flags = asset.trust_flags ?? []
   const sig = (asset.signals ?? {}) as Record<string, unknown>
@@ -112,6 +123,16 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
             </Panel>
           )}
 
+          {!!retakes?.length && (
+            <Panel className="grid gap-3 p-5">
+              <p className="text-[15px]"><b className="font-semibold">{retakes.length}</b> retake{retakes.length === 1 ? "" : "s"} from this exact spot (Ghost Camera)</p>
+              <ReelPanel endpoint={`/api/assets/${asset.id}/timelapse`} reel={timelapse} copy={{
+                build: "Build time-lapse", rebuild: "Rebuild time-lapse", busy: "Building time-lapse…",
+                help: "This photo and every verified retake lined up with it, oldest first, dissolving into each other. Faces are pixelated. No AI credits.",
+              }} />
+            </Panel>
+          )}
+
           <section className="grid gap-4" aria-labelledby="what-h">
             <Eyebrow>02 · What&apos;s in it</Eyebrow>
             <h2 id="what-h" className="sr-only">What&apos;s in it</h2>
@@ -136,7 +157,11 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
               ["GPS", asset.lat !== null && asset.lng !== null ? `${asset.lat.toFixed(5)}, ${asset.lng.toFixed(5)}` : "no location metadata"],
               ["Project", project ? <Link key="p" href={`/projects/${project.id}`} className={link}>{project.name}</Link> : "unassigned"],
               ["Status", asset.status],
+              ...(asset.capture_proof ? [["GPS accuracy", asset.capture_proof.payload.accuracyM !== null ? `±${asset.capture_proof.payload.accuracyM} m at capture` : "n/a"] as [string, string]] : []),
             ]} />
+            {asset.resource_type === "image" && !asset.parent_asset_id && (
+              <Link href={`/capture?ghost=${asset.id}`} className={link + " text-[13px]"}>Retake from this exact spot (opens the field camera with this photo as a ghost) →</Link>
+            )}
           </section>
 
           <section className="grid gap-4" aria-labelledby="src-h">
@@ -145,6 +170,11 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
             <KeyValue rows={[
               ["Public ID", <span key="i">{asset.public_id}<CopyButton value={asset.public_id} label="Copy public ID" /></span>],
               ["Original", <a key="o" href={asset.secure_url} className={link} target="_blank" rel="noreferrer">Open original ↗</a>],
+              ...(asset.capture_proof ? [
+                ["Live capture", <span key="c">Signed on device <span className="text-hash">{asset.capture_proof.deviceId}</span> · {formatTime(asset.capture_proof.verifiedAt)} IST</span>] as [string, React.ReactNode],
+                ["Signed SHA-256", <span key="s" className="text-hash">{asset.capture_proof.payload.sha256}<CopyButton value={asset.capture_proof.payload.sha256} label="Copy signed hash" /></span>] as [string, React.ReactNode],
+                ...(asset.capture_proof.payload.ghostAssetId ? [["Lined up with", <Link key="g" href={`/assets/${asset.capture_proof.payload.ghostAssetId}`} className={link}>the earlier photo (ghost) ↗</Link>] as [string, React.ReactNode]] : []),
+              ] : []),
               ["etag", asset.etag ? <span key="e" className="text-hash">{asset.etag}<CopyButton value={asset.etag} label="Copy etag" /></span> : "n/a"],
               ["pHash", asset.phash ? <span key="h" className="text-hash">{asset.phash}<CopyButton value={asset.phash} label="Copy perceptual hash" /></span> : "n/a"],
             ]} />

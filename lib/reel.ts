@@ -67,16 +67,30 @@ export function slideUrl(cloud: string, slide: ReelSlide): string {
   return `https://res.cloudinary.com/${cloud}/image/upload/${parts.join("/")}/${id}.jpg`
 }
 
+export type Pace = { slide: number; fade: number }
+export const REEL_PACE: Pace = { slide: SLIDE_S, fade: FADE_S }
+// Time-lapse of one spot: quicker, and the long dissolve makes the aligned photos "morph" into each other.
+export const TIMELAPSE_PACE: Pace = { slide: 2, fade: 1 }
+
 // Stage 2: the reel. `slideIds` are the stored slide images, in order.
-export function reelUrl(cloud: string, slideIds: string[], opts: { download?: string } = {}): string {
+export function reelUrl(cloud: string, slideIds: string[], opts: { download?: string; pace?: Pace } = {}): string {
+  const { slide, fade } = opts.pace ?? REEL_PACE
   const parts: string[] = []
   if (opts.download) parts.push(`fl_attachment:${opts.download}`)
   parts.push(`du_${LEAD_S}`)
   for (const id of slideIds) {
-    parts.push(`fl_splice:transition_(name_fade;du_${FADE_S}),l_${layerId(id)},c_fill,w_${REEL_SIZE},h_${REEL_SIZE},du_${SLIDE_S}/fl_layer_apply`)
+    parts.push(`fl_splice:transition_(name_fade;du_${fade}),l_${layerId(id)},c_fill,w_${REEL_SIZE},h_${REEL_SIZE},du_${slide}/fl_layer_apply`)
   }
   return `https://res.cloudinary.com/${cloud}/video/upload/${parts.join("/")}/${REEL_BASE}.mp4`
 }
 
-// Length of the finished reel: every crossfade overlaps two neighbours by FADE_S.
-export const reelSeconds = (slideCount: number) => (slideCount === 0 ? 0 : LEAD_S + slideCount * SLIDE_S - slideCount * FADE_S)
+// Length of the finished reel: every crossfade overlaps two neighbours by the fade length.
+export const reelSeconds = (slideCount: number, pace: Pace = REEL_PACE) => (slideCount === 0 ? 0 : LEAD_S + slideCount * pace.slide - slideCount * pace.fade)
+
+// Ghost Camera time-lapse: the first photo and every retake lined up with it, oldest first, each dated.
+export type ChainPhoto = { publicId: string; takenAt: string | null }
+export function planTimelapse(chain: ChainPhoto[], formatDay: (iso: string) => string): ReelSlide[] {
+  const dated = [...chain].filter((p) => p.takenAt).sort((a, b) => a.takenAt!.localeCompare(b.takenAt!))
+  if (dated.length < 2) return []
+  return dated.map((p, i) => ({ kind: "photo", publicId: p.publicId, label: `${i === 0 ? "BEFORE" : i === dated.length - 1 ? "LATEST" : `RETAKE ${i}`} · ${formatDay(p.takenAt!)}` }))
+}
