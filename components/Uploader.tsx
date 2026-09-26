@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { readExif } from "@/lib/exif"
 import { uploadToCloudinary } from "@/lib/upload-client"
+import { uploadReport, type UploadReport } from "@/lib/upload-report"
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024 // Cloudinary free plan rejects images over 10 MB (media_limits.image_max_size_bytes); CLAUDE.md said 15
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024
@@ -16,7 +17,7 @@ const PARALLEL_UPLOADS = 3
 // Fired on window when a batch finishes, so the analysis panel can refresh its counts (and auto-start).
 export const UPLOADED_EVENT = "overlook:uploaded"
 
-type Row = { name: string; state: "queued" | "uploading" | "done" | "rejected" | "failed"; note?: string; meta?: string }
+type Row = { name: string; state: "queued" | "uploading" | "done" | "rejected" | "failed"; note?: string; meta?: string; cld?: UploadReport }
 
 const midEllipsis = (name: string, max = 30) => {
   if (name.length <= max) return name
@@ -81,8 +82,9 @@ export default function Uploader() {
           has_exif: exif.hasExif,
         }),
       })
-      if (!save.ok) throw new Error((await save.json()).error ?? "saving failed")
-      update(i, { state: "done" })
+      const saved = await save.json()
+      if (!save.ok) throw new Error(saved.error ?? "saving failed")
+      update(i, { state: "done", cld: uploadReport(saved.asset ?? {}, saved.fileMeta ?? null, exif.hasExif) })
       return true
     } catch (err) {
       update(i, { state: "failed", note: err instanceof Error ? err.message : String(err) })
@@ -115,10 +117,10 @@ export default function Uploader() {
     router.refresh()
   }
 
-  // The queue folds down to its summary 4 s after a batch finishes.
+  // The queue folds down to its summary 12 s after a batch finishes.
   useEffect(() => {
     if (busy || rows.length === 0) return
-    const t = setTimeout(() => setCollapsed(true), 4000)
+    const t = setTimeout(() => setCollapsed(true), 12000) // long enough to read what Cloudinary found per file
     return () => clearTimeout(t)
   }, [busy, rows.length])
 
@@ -169,6 +171,11 @@ export default function Uploader() {
                   <span className="text-data truncate" title={r.name}>{midEllipsis(r.name)}</span>
                   {r.meta && <span className="text-data col-start-2 text-fg-3 sm:col-start-3">{r.meta}</span>}
                   {r.note && <span className="text-small col-start-2 text-suspicious sm:col-span-2">{r.note}</span>}
+                  {r.cld && (
+                    <span className={cn("text-small col-start-2 sm:col-span-2", r.cld.tone === "warn" ? "text-review" : r.cld.tone === "ok" ? "text-verified" : "text-fg-2")}>
+                      <span aria-hidden="true">✦ </span>{r.cld.text}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

@@ -4,6 +4,7 @@ import { recomputeTrust } from "@/lib/trust-db"
 import { cachedCall } from "@/lib/cache"
 import { scanProvenance, SCAN_BYTES } from "@/lib/provenance"
 import { readFileMeta } from "@/lib/file-meta"
+import type { FileMeta } from "@/lib/cld-exif"
 import { cloudinary } from "@/lib/cloudinary"
 
 export type NewAsset = {
@@ -15,7 +16,7 @@ export type NewAsset = {
 
 // Inserts (or re-saves) an uploaded file as a pending asset and computes its first trust score.
 // Shared by /api/assets (plain uploads) and /api/capture (signed live captures).
-export async function saveAsset(b: NewAsset): Promise<{ asset: Record<string, unknown> } | { error: string }> {
+export async function saveAsset(b: NewAsset): Promise<{ asset: Record<string, unknown>; fileMeta: FileMeta | null } | { error: string }> {
   const { data, error } = await supabase
     .from("assets")
     .upsert(
@@ -44,8 +45,9 @@ export async function saveAsset(b: NewAsset): Promise<{ asset: Record<string, un
   if (b.resource_type === "image" && !b.capture_proof) await checkProvenance(data.id, b.secure_url, b.etag ?? b.public_id).catch(() => null)
   // Cloudinary reads the stored file's own metadata. The trust score compares it with what was sent; and when nothing
   // was sent (imports from Drive/Dropbox/a link, where the browser never sees the file) it becomes the photo's metadata.
+  let meta: FileMeta | null = null
   if (b.resource_type === "image" && !b.capture_proof) {
-    const meta = await readFileMeta({ id: data.id, public_id: b.public_id, etag: b.etag })
+    meta = await readFileMeta({ id: data.id, public_id: b.public_id, etag: b.etag })
     const sentNothing = b.lat == null && b.lng == null && !b.taken_at
     if (meta && sentNothing && (meta.lat !== null || meta.takenAt)) {
       await supabase.from("assets").update({ lat: meta.lat, lng: meta.lng, taken_at: meta.takenAt, has_exif: true }).eq("id", data.id)
@@ -54,7 +56,7 @@ export async function saveAsset(b: NewAsset): Promise<{ asset: Record<string, un
   await recomputeTrust([data.id])
   // Re-read so the caller sees the trust score and flags that were just computed.
   const { data: scored } = await supabase.from("assets").select("*").eq("id", data.id).single()
-  return { asset: scored ?? data }
+  return { asset: scored ?? data, fileMeta: meta }
 }
 
 // Reads the start of the stored original (where metadata lives) and records what it declares. Cached per file.

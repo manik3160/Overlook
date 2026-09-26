@@ -24,5 +24,6 @@ export async function POST(request: Request) {
   }
   const saved = await saveAsset(parsed.data)
   if ("error" in saved) return NextResponse.json({ error: saved.error }, { status: 500 })
-  return NextResponse.json({ asset: saved.asset })
+  // what Cloudinary read from the stored file, for the upload list's "Cloudinary read the file: …" line
+  return NextResponse.json({ asset: saved.asset, fileMeta: saved.fileMeta })
 }
