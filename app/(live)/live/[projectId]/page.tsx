@@ -8,6 +8,8 @@ import { Eyebrow } from "@/components/ui/layout"
 import { EmptyState } from "@/components/ui/notice"
 import { supabase } from "@/lib/supabase"
 import { loadCampaign } from "@/lib/campaign-data"
+import { ensurePublicCopiesLater, publicCopiesFor } from "@/lib/public-copy"
+import { publicCopyUrl } from "@/lib/cloudinary-url"
 import { loadMilestones } from "@/lib/milestones-data"
 import { manifestHash } from "@/lib/manifest"
 import { posterUrl } from "@/lib/reel"
@@ -36,6 +38,11 @@ export default async function LivePage(props: PageProps<"/live/[projectId]">) {
   if (!c) notFound()
 
   const feed = c.verifiedRows.filter((r) => r.resource_type === "image").sort((a, b) => (b.time ?? 0) - (a.time ?? 0)).slice(0, FEED)
+  // Photos with a stored face-blurred copy use it; the rest use on-the-fly pixelation and get a copy made after the response.
+  const copies = await publicCopiesFor(feed.map((r) => r.id))
+  ensurePublicCopiesLater(feed.filter((r) => !copies.has(r.id)))
+  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const feedSrc = (r: { id: string; secure_url: string }) => (cloud && copies.has(r.id) ? publicCopyUrl(cloud, r.id, "c_fill,w_480,h_360,f_auto,q_auto") : thumb(r.secure_url))
   const lastEvidence = c.verifiedRows.reduce<number | null>((m, r) => (r.time !== null && (m === null || r.time > m) ? r.time : m), null)
   const reel = reelRow && manifestHash(reelRow.manifest) === reelRow.manifest_sha256 ? (reelRow.manifest as { reel: { url: string; seconds: number }; slides?: { slide_public_id: string }[] }) : null
   const sat = satRow && manifestHash(satRow.manifest) === satRow.manifest_sha256 ? (satRow.manifest as { verdict: { tone: string; text: string }; before: { date: string; crop: { secure_url: string } }; after: { date: string; crop: { secure_url: string } } }) : null
@@ -88,7 +95,7 @@ export default async function LivePage(props: PageProps<"/live/[projectId]">) {
               {feed.map((r) => (
                 <li key={r.id} className="grid gap-1">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={thumb(r.secure_url)} alt={r.caption ?? "Verified field photo"} loading="lazy" className="aspect-[4/3] w-full bg-surface-2 object-cover" />
+                  <img src={feedSrc(r)} alt={r.caption ?? "Verified field photo"} loading="lazy" className="aspect-[4/3] w-full bg-surface-2 object-cover" />
                   <span className="text-small">{r.taken_at ? formatDay(r.taken_at) : "undated"}{r.capture_proof?.verified ? <> · <ShieldCheck size={12} className="inline align-[-1px]" aria-hidden="true" /> captured live</> : ""}</span>
                 </li>
               ))}

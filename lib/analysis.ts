@@ -4,6 +4,8 @@ import { cachedCall } from "@/lib/cache"
 import { analyzeImage, embedText, type GeminiAnalysis } from "@/lib/gemini"
 import { visionTag, type VisionTags } from "@/lib/vision"
 import { recomputeTrust } from "@/lib/trust-db"
+import { syncLater } from "@/lib/cloudinary-sync"
+import { screenSecondOpinion } from "@/lib/second-opinion"
 import { processVideo } from "@/lib/video-processing"
 
 export type AssetRow = { id: string; public_id: string; secure_url: string; etag: string | null; resource_type: string }
@@ -66,6 +68,7 @@ export async function analyzeAsset(asset: AssetRow): Promise<AnalysisOutcome> {
     const twinId = await copyFromTwin(asset)
     if (twinId) {
       await recomputeTrust([asset.id])
+      syncLater([asset.id])
       return { status: "done", apiCalls: 0, copiedFrom: twinId }
     }
 
@@ -104,6 +107,9 @@ export async function analyzeAsset(asset: AssetRow): Promise<AnalysisOutcome> {
       .eq("id", asset.id)
     if (error) throw new Error(error.message)
     await recomputeTrust([asset.id])
+    // Only photos Gemini flagged as a screen/print get a Cloudinary AI Vision second opinion (shown to reviewers).
+    if (gemini.result.checks?.photo_of_screen_or_print) await screenSecondOpinion(asset)
+    syncLater([asset.id]) // tags + caption into Cloudinary
     return { status: "done", apiCalls }
   } catch (err) {
     if (err instanceof Error && err.name === "RateLimitError") throw err

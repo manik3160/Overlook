@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { cardUrl, escapeOverlayText, HINDI_FONT } from "./cards"
+import { cardUrl, escapeOverlayText, HINDI_FONT, AI_LABEL, cropCompareUrls, realArea } from "./cards"
 
 const base = { cloud: "democloud", hero: { publicId: "evidence/inbox/after1" }, before: { publicId: "evidence/inbox/before1" }, headline: "Garbage visible: 100% to 0%", subline: "Test, Drive | Overlook" }
 
@@ -56,5 +56,36 @@ describe("cardUrl", () => {
     const u = cardUrl({ ...base, before: null, kind: "instagram" })
     expect(u).not.toContain("BEFORE")
     expect(u).toContain("l_text:Arial_56_bold:")
+  })
+})
+
+describe("smart crop and AI-extended cards", () => {
+  const input = { cloud: "demo", hero: { publicId: "evidence/a" }, before: { publicId: "evidence/b" }, headline: "Garbage 5 to 0", subline: "Test", kind: "instagram" as const }
+  it("leaves existing card URLs unchanged unless smart is asked for", () => {
+    expect(cardUrl({ ...input, smart: false })).toBe(cardUrl(input))
+    expect(cardUrl(input)).not.toContain("g_auto")
+  })
+  it("uses Cloudinary smart crop on the base photo and on every photo layer", () => {
+    const u = cardUrl({ ...input, smart: true })
+    expect(u.match(/c_fill,g_auto/g)).toHaveLength(3)
+    expect(u).toContain("e_pixelate_faces/c_fill,g_auto,w_1080,h_1080")
+  })
+  it("fills the edges with generative AI, THEN pixelates faces, and says so on the card", () => {
+    const u = cardUrl({ ...input, before: null, kind: "story_ai" })
+    expect(u).toContain("/c_pad,w_1080,h_1920,b_gen_fill/e_pixelate_faces/")
+    expect(u.indexOf("b_gen_fill")).toBeLessThan(u.indexOf("e_pixelate_faces"))
+    expect(u).toContain(escapeOverlayText(AI_LABEL))
+  })
+  it("outlines where the real photo sits inside the AI-extended card", () => {
+    expect(realArea(3840, 2160)).toEqual({ top: 34.2, left: 0, width: 100, height: 31.6 })
+    expect(realArea(1080, 1920)).toEqual({ top: 0, left: 0, width: 100, height: 100 })
+    expect(realArea(1000, 4000)).toEqual({ top: 0, left: 27.8, width: 44.4, height: 100 })
+  })
+  it("builds a centre vs smart crop pair of the same size", () => {
+    const { plain, smart } = cropCompareUrls("demo", "evidence/a")
+    expect(plain).toContain("/c_fill,w_540,h_960/")
+    expect(smart).toContain("/c_fill,g_auto,w_540,h_960/")
+    expect(plain).toContain("e_pixelate_faces")
+    expect(smart).toContain("e_pixelate_faces")
   })
 })

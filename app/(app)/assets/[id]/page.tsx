@@ -13,6 +13,12 @@ import { TileImage } from "@/components/EvidenceTile"
 import { Chip, Eyebrow, KeyValue, PageHeader, Panel } from "@/components/ui/layout"
 import { InlineNotice } from "@/components/ui/notice"
 import { supabase } from "@/lib/supabase"
+import { readCloudinaryRecord } from "@/lib/cloudinary-sync"
+import { loadScreenOpinion } from "@/lib/second-opinion"
+import CloudinaryMark from "@/components/CloudinaryMark"
+import CloudinaryRecord from "@/components/CloudinaryRecord"
+import RenditionStrip from "@/components/RenditionStrip"
+import { enhanceCompare, renditionsFor } from "@/lib/renditions"
 import { NA } from "@/lib/copy"
 import { formatTime } from "@/lib/dates"
 import { formatClock, playerUrl } from "@/lib/video"
@@ -53,6 +59,8 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
   const { data: retakes } = asset.resource_type === "image" ? await supabase.from("assets").select("id").eq("capture_proof->payload->>ghostAssetId", asset.id) : { data: null }
   const { data: lapseRow } = retakes?.length ? await supabase.from("reports").select("manifest, created_at").eq("kind", "timelapse").eq("manifest->>before_id", asset.id).order("created_at", { ascending: false }).limit(1).maybeSingle() : { data: null }
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const cldRecord = await readCloudinaryRecord(asset.public_id, asset.resource_type)
+  const screenOpinion = (asset.trust_flags ?? []).some((f) => f.code === "PHOTO_OF_PHOTO") ? await loadScreenOpinion(asset.id) : null
   const lapseSlides = ((lapseRow?.manifest?.slides ?? []) as { slide_public_id: string }[]).map((s) => s.slide_public_id)
   const timelapse: ReelView | null = lapseRow && cloud && lapseSlides.length
     ? { url: reelUrl(cloud, lapseSlides, { pace: TIMELAPSE_PACE }), downloadUrl: reelUrl(cloud, lapseSlides, { pace: TIMELAPSE_PACE, download: "overlook-timelapse" }), seconds: lapseRow.manifest.timelapse.seconds, generatedAt: formatTime(lapseRow.created_at), poster: posterUrl(cloud, lapseSlides[0]) }
@@ -107,6 +115,18 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
                 <div className="flex items-center justify-between"><TrustBadge score={asset.trust_score} reviewStatus={asset.review_status} size="lg" /></div>
                 <TrustMeter score={asset.trust_score} capped={capped} />
                 <AuditTrace flags={flags} score={asset.trust_score} hasExif={asset.has_exif} reviewStatus={asset.review_status} />
+                {screenOpinion && (
+                  <div className="grid gap-2 rounded-md border border-line bg-surface-2 p-3">
+                    <CloudinaryMark says="A second, independent AI (Cloudinary AI Vision) was asked the same question" />
+                    <p className="text-[14px] leading-6">
+                      {screenOpinion.agrees === true
+                        ? <><b className="font-semibold">Second opinion agrees.</b> Cloudinary AI Vision also says this looks like a photo of a screen or print.</>
+                        : screenOpinion.agrees === false
+                          ? <><b className="font-semibold">Second opinion disagrees.</b> Cloudinary AI Vision thinks this is a direct photo of a real scene. A reviewer should decide.</>
+                          : <>Cloudinary AI Vision gave an unclear answer (&ldquo;{screenOpinion.answer}&rdquo;). A reviewer should decide.</>}
+                    </p>
+                  </div>
+                )}
               </>
             )}
             {asset.status !== "done" && asset.trust_score !== null && <p className="text-small">AI checks (photo of a screen, unrelated) run after analysis.</p>}
@@ -179,8 +199,12 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
               ["pHash", asset.phash ? <span key="h" className="text-hash">{asset.phash}<CopyButton value={asset.phash} label="Copy perceptual hash" /></span> : "n/a"],
             ]} />
           </section>
+
+          <CloudinaryRecord record={cldRecord} />
         </div>
       </div>
+
+      {cloud && <RenditionStrip renditions={renditionsFor(asset, { cloud, projectName: project?.name ?? null })} enhance={asset.resource_type === "image" ? enhanceCompare(asset.secure_url) : undefined} />}
 
       {asset.resource_type === "video" && (
         <div className="mt-16 grid gap-10">

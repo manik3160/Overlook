@@ -1,4 +1,5 @@
 import "server-only"
+import { syncLater } from "@/lib/cloudinary-sync"
 import { selectAll, supabase } from "@/lib/supabase"
 import { canonicalJson } from "@/lib/manifest"
 import { computeTrust, type TrustAsset, type TrustChecks, type TrustFlag, type TrustProject, type TrustProvenance } from "@/lib/trust"
@@ -69,6 +70,7 @@ export async function recomputeTrust(ids?: string[]): Promise<number> {
     const { error } = await supabase.from("assets").update({ trust_score: c.score, trust_flags: c.flags }).eq("id", c.id)
     if (error) throw new Error(error.message)
   })
+  syncLater(changed.map((c) => c.id)) // mirror the new score/band into Cloudinary, after the response
   return targets.length
 }
 

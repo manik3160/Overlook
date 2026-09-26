@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase"
 import { manifestHash } from "@/lib/manifest"
 import { reportSlideUrl } from "@/lib/manifest"
 import { loadCampaign } from "@/lib/campaign-data"
+import { ensurePublicCopy } from "@/lib/public-copy"
+import { publicCopyUrl } from "@/lib/cloudinary-url"
 import { writeStory } from "@/lib/gemini"
 import { factsText, narrativeGrounded, templateNarrative, type Narrative, type StoryFacts } from "@/lib/story"
 
@@ -35,6 +37,14 @@ export async function POST(_request: Request, ctx: RouteContext<"/api/projects/[
     narrative = templateNarrative(facts)
   }
 
+  // Public pages point at stored copies whose faces are blurred inside the file (falls back to on-the-fly pixelation).
+  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const SLIDE = "c_fill,w_800,h_600,f_jpg,q_auto"
+  const copied = c.pair && cloud
+    ? (await Promise.all([ensurePublicCopy(c.pair.before), ensurePublicCopy(c.pair.after)])).every(Boolean)
+    : false
+  const pairUrl = (row: { id: string; secure_url: string }) => (copied && cloud ? publicCopyUrl(cloud, row.id, SLIDE) : reportSlideUrl(row.secure_url))
+
   const storyId = randomUUID()
   const manifest = {
     schema: "overlook-story/1",
@@ -44,7 +54,9 @@ export async function POST(_request: Request, ctx: RouteContext<"/api/projects/[
     verified_photos: c.verifiedRows.length, total_photos: c.totalPhotos,
     best_pair: c.pair && {
       before_public_id: c.pair.before.public_id, after_public_id: c.pair.after.public_id,
-      before_url: reportSlideUrl(c.pair.before.secure_url), after_url: reportSlideUrl(c.pair.after.secure_url), summary: c.pair.summary,
+      before_url: pairUrl(c.pair.before), after_url: pairUrl(c.pair.after), summary: c.pair.summary,
+      // the stored after-photo copy with NO transformation: for the "try to remove the blur" check on the story page
+      ...(copied && cloud ? { after_public_copy_raw: publicCopyUrl(cloud, c.pair.after.id), after_public_copy_view: publicCopyUrl(cloud, c.pair.after.id, SLIDE) } : {}),
     },
     sources: c.verifiedRows.map((r) => r.public_id).sort(),
   }

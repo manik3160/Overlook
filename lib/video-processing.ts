@@ -4,6 +4,8 @@ import { cloudinary } from "@/lib/cloudinary"
 import { cachedCall } from "@/lib/cache"
 import { embedText, transcribeAudio, type Transcription } from "@/lib/gemini"
 import { recomputeTrust } from "@/lib/trust-db"
+import { videoPreviewUrl } from "@/lib/cloudinary-url"
+import { syncLater } from "@/lib/cloudinary-sync"
 import { audioSourceUrl, frameSeconds, framePublicId, frameSourceUrl } from "@/lib/video"
 
 type VideoRow = { id: string; public_id: string; project_id: string | null; taken_at: string | null; lat: number | null; lng: number | null; has_exif: boolean }
@@ -82,5 +84,7 @@ export async function processVideo(asset: { id: string; public_id: string }): Pr
     .eq("id", video.id)
   if (updateError) throw new Error(updateError.message)
   await recomputeTrust([video.id, ...frameIds])
+  syncLater([video.id]) // transcript summary as the caption in Cloudinary
+  void fetch(videoPreviewUrl(`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload/${video.public_id}.mp4`)).catch(() => undefined) // warm Cloudinary's AI preview so the first hover plays at once
   return { apiCalls, frames: frameIds.length, transcribed: !!tr.transcript, hasAudio: info.has_audio !== false }
 }

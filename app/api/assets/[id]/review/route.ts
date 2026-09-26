@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { supabase } from "@/lib/supabase"
+import { syncLater } from "@/lib/cloudinary-sync"
 
 const bodySchema = z.object({ status: z.enum(["approved", "rejected", "unreviewed"]) })
 
@@ -12,5 +13,6 @@ export async function POST(request: Request, ctx: RouteContext<"/api/assets/[id]
   const { data, error } = await supabase.from("assets").update({ review_status: parsed.data.status }).eq("id", id).select("id, review_status").maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data) return NextResponse.json({ error: "Asset not found" }, { status: 404 })
+  syncLater([id]) // review status into Cloudinary
   return NextResponse.json({ asset: data })
 }

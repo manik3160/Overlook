@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import { Fingerprint } from "lucide-react"
 import BeforeAfterSlider from "@/components/BeforeAfterSlider"
+import BlurProof from "@/components/BlurProof"
 import StatFigure from "@/components/StatFigure"
 import { Eyebrow } from "@/components/ui/layout"
 import { EmptyState, InlineNotice } from "@/components/ui/notice"
@@ -21,7 +22,7 @@ type StoryManifest = {
   numbers: { label: string; value: string }[]
   narrative: { problem: string; action: string; result: string }
   verified_photos: number; total_photos: number
-  best_pair: { before_url: string; after_url: string; summary: string | null } | null
+  best_pair: { before_url: string; after_url: string; summary: string | null; after_public_copy_raw?: string; after_public_copy_view?: string } | null
 }
 type ReelManifest = { reel: { url: string; seconds: number }; sources: string[]; slides?: { slide_public_id: string }[] }
 
@@ -78,6 +79,10 @@ export default async function StoryPage(props: PageProps<"/story/[projectId]">) 
           <BeforeAfterSlider beforeUrl={m.best_pair.before_url} afterUrl={m.best_pair.after_url} nudge />
           {m.best_pair.summary && <p className="max-w-[62ch]">{m.best_pair.summary}</p>}
         </section>
+      )}
+
+      {m.best_pair?.after_public_copy_raw && m.best_pair.after_public_copy_view && (
+        <BlurProof viewUrl={m.best_pair.after_public_copy_view} rawUrl={m.best_pair.after_public_copy_raw} />
       )}
 
       {reel && (

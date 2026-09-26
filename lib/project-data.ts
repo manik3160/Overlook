@@ -8,6 +8,7 @@ export type EvidenceRow = ScoreAsset & {
   secure_url: string; resource_type: string; caption: string | null; tags: string[] | null
   taken_at: string | null; created_at: string; lat: number | null; lng: number | null; embedding: number[] | null
   capture_proof: { payload?: { ghostAssetId?: string | null }; deviceId?: string; verified?: boolean } | null
+  width?: number | null; height?: number | null
 }
 
 const parseVector = (v: unknown): number[] | null => (typeof v === "string" ? (JSON.parse(v) as number[]) : Array.isArray(v) ? (v as number[]) : null)
@@ -17,7 +18,7 @@ export async function loadEvidence(projectId: string): Promise<{ rows: EvidenceR
   const all = await selectAll((from, to) =>
     supabase
       .from("assets")
-      .select("id, public_id, etag, phash, trust_flags, secure_url, resource_type, caption, tags, taken_at, created_at, lat, lng, embedding, status, signals, trust_score, review_status, capture_proof")
+      .select("id, public_id, etag, phash, trust_flags, secure_url, resource_type, caption, tags, taken_at, created_at, lat, lng, embedding, status, signals, trust_score, review_status, capture_proof, width, height")
       .eq("project_id", projectId)
       .order("id")
       .range(from, to),

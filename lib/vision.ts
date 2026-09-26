@@ -31,3 +31,24 @@ export async function visionTag(imageUrl: string): Promise<VisionTags> {
     unitsRemaining: quota?.remaining ?? null,
   }
 }
+
+const generalSchema = z.object({
+  limits: z.object({ addons_quota: z.array(z.object({ used_by_request: z.number(), remaining: z.number() })) }).optional(),
+  data: z.object({ analysis: z.object({ responses: z.array(z.object({ value: z.string() })) }) }),
+})
+
+// Cloudinary AI Vision GENERAL mode: free-form questions about one image (<= 10 prompts per request).
+export async function visionAsk(imageUrl: string, prompts: string[]): Promise<{ answers: string[]; unitsUsed: number | null }> {
+  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const auth = Buffer.from(`${process.env.CLOUDINARY_API_KEY}:${process.env.CLOUDINARY_API_SECRET}`).toString("base64")
+  const res = await fetch(`https://api.cloudinary.com/v2/analysis/${cloud}/analyze/ai_vision_general`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Basic ${auth}` },
+    body: JSON.stringify({ source: { uri: imageUrl }, prompts }),
+  })
+  const body = await res.json().catch(() => null)
+  if (res.status === 429) throw new RateLimitError("Cloudinary AI Vision", JSON.stringify(body))
+  if (!res.ok) throw new Error(`AI Vision HTTP ${res.status}: ${JSON.stringify(body?.error ?? body)}`)
+  const parsed = generalSchema.parse(body)
+  return { answers: parsed.data.analysis.responses.map((r) => r.value), unitsUsed: parsed.limits?.addons_quota[0]?.used_by_request ?? null }
+}

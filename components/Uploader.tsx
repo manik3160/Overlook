@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { readExif } from "@/lib/exif"
 import { uploadToCloudinary } from "@/lib/upload-client"
 
-const MAX_IMAGE_BYTES = 15 * 1024 * 1024
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024 // Cloudinary free plan rejects images over 10 MB (media_limits.image_max_size_bytes); CLAUDE.md said 15
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024
 const IMAGE_EXT = ["jpg", "jpeg", "png", "webp", "heic", "heif"]
 const VIDEO_EXT = ["mp4", "mov", "webm"]
@@ -154,7 +154,7 @@ export default function Uploader() {
       >
         <ArrowUpFromLine size={20} strokeWidth={1.5} className="text-fg-3" aria-hidden="true" />
         <span className="text-title">{dragging ? "Release to upload" : "Drop field photos and videos here, or choose files"}</span>
-        <span className="text-data text-fg-3">JPG · PNG · WEBP · HEIC up to 15 MB &nbsp; MP4 · MOV · WEBM up to 100 MB</span>
+        <span className="text-data text-fg-3">JPG · PNG · WEBP · HEIC up to 10 MB &nbsp; MP4 · MOV · WEBM up to 100 MB</span>
         <span className="text-small">Location and time are read from each file before it leaves your device.</span>
       </label>
 

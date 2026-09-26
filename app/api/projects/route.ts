@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 import { recomputeTrust } from "@/lib/trust-db"
+import { syncLater } from "@/lib/cloudinary-sync"
 import { createProjectSchema } from "@/lib/project-schema"
 
 export async function POST(request: Request) {
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
     const { error: assignError } = await supabase.from("assets").update({ project_id: project.id }).in("id", asset_ids).is("project_id", null)
     if (assignError) return NextResponse.json({ error: assignError.message }, { status: 500 })
     await recomputeTrust(asset_ids)
+    syncLater(asset_ids) // into the new project's folder in Cloudinary
   }
   return NextResponse.json({ project })
 }

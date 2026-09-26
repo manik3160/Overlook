@@ -18,6 +18,8 @@ import { selectAll, supabase } from "@/lib/supabase"
 import { clusterPoints, type GeoPoint } from "@/lib/geo"
 import { formatDay, formatTime } from "@/lib/dates"
 import { computeStats } from "@/lib/stats"
+import { cloudinaryAtWork } from "@/lib/cloudinary-usage"
+import CloudinaryAtWork from "@/components/CloudinaryAtWork"
 import { VERIFIED_SCORE } from "@/lib/signals"
 import { trustBand } from "@/lib/trust"
 import type { Project } from "@/lib/project-schema"
@@ -40,6 +42,7 @@ export default async function Dashboard() {
     ).then((data) => ({ data })),
     supabase.from("reports").select("kind"),
   ])
+  const atWork = await cloudinaryAtWork()
   const projects = (projectRows ?? []) as Project[]
   const assets = (assetRows ?? []) as Row[]
   const stats = computeStats(assets)
@@ -100,6 +103,10 @@ export default async function Dashboard() {
         <>
           <Section id="chain" eyebrow="01 · Chain of custody" title="From upload to verified evidence">
             <CustodyFunnel stats={stats} bands={bands} reports={reports} stories={stories} />
+          </Section>
+
+          <Section id="cloudinary" eyebrow="Cloudinary at work" title="What Cloudinary does for this workspace">
+            <CloudinaryAtWork w={atWork} />
           </Section>
 
           {flagged.length > 0 && (

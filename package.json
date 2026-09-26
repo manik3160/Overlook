@@ -16,7 +16,9 @@
     "check-capture": "tsx scripts/check-capture.ts",
     "seed": "tsx scripts/seed-demo.ts",
     "seed:real": "tsx scripts/seed-real.ts",
-    "check-demo": "tsx scripts/check-demo-flow.mts"
+    "check-demo": "tsx scripts/check-demo-flow.mts",
+    "cloudinary:sync": "tsx --conditions=react-server scripts/cloudinary-sync.ts",
+    "second-opinion": "tsx --conditions=react-server scripts/second-opinion.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

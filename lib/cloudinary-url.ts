@@ -13,3 +13,13 @@ export function blurUrl(secureUrl: string, resourceType: string): string {
   const url = secureUrl.replace("/upload/", "/upload/c_fill,w_24,h_24,e_blur:300,q_30,f_auto/")
   return resourceType === "video" ? url.replace(/\.[a-z0-9]+$/i, ".jpg") : url
 }
+
+// Public copies: a separate stored file per verified photo with faces pixelated INSIDE the file (done once, on upload).
+// Public pages point only at these, so removing a transformation from the URL can never reveal a face.
+export const publicCopyId = (assetId: string) => `overlook/public/${assetId}`
+export const publicCopyUrl = (cloud: string, assetId: string, transformation = "") =>
+  `https://res.cloudinary.com/${cloud}/image/upload/${transformation ? `${transformation}/` : ""}${publicCopyId(assetId)}.jpg`
+
+// Cloudinary AI video preview (e_preview): a short clip of the most interesting moments, for hovering a video tile.
+export const videoPreviewUrl = (secureUrl: string, seconds = 4) =>
+  secureUrl.replace("/upload/", `/upload/e_preview:duration_${seconds}/c_fill,w_240,h_240,q_auto/`).replace(/\.[a-z0-9]+$/i, ".mp4")

@@ -53,6 +53,24 @@ Built for Code Cubicle 6.0 (Problem Statement 02, Cloudinary track).
 | **Traceability** to originals **and transformations** | Manifest with `public_id`, original + transformation URLs, SHA-256, QR to a public verify page | `lib/manifest.ts`, `/verify/[reportId]` |
 | Campaign-ready content, **impact stories** | Social cards, Hindi card, story page | `lib/cards.ts`, `/story/[projectId]` |
 
+## How Overlook uses Cloudinary
+
+Cloudinary is not just storage here: it does the work on every line of the problem statement, and every place it does
+is marked **✦ Cloudinary** in the app.
+
+| PS line | What Cloudinary does | Where you see it |
+|---|---|---|
+| Analyze & organize large collections | Signed direct uploads with `phash`; every finding is written back onto the file as **structured metadata** (trust band, score, human review, project, flag reasons), **tags** (AI taxonomy) and **context** (caption), and files are moved into a **folder per project** (dynamic folders, URLs unchanged) | Cloudinary Media Library (filter by "Overlook: …" fields); asset page "In the Cloudinary library" (read live) |
+| Identify activities & visual signals | **AI Vision tagging** against our 10-tag taxonomy; **AI Vision general** as an independent second opinion on "photo of a screen or print" | Asset page tags; "Second opinion agrees" under the trust audit |
+| Before-and-after | Identical `c_fill` crops so pairs line up; spliced reels (`fl_splice`) | Before/after slider, highlight reel |
+| Visual reports, campaign content | Text overlays incl. a Devanagari font, `e_pixelate_faces` on every public image, **smart crop** (`g_auto`), **generative fill** (`b_gen_fill`) for an honest AI-extended story card, **AI enhance** (`e_enhance`) | Campaign tab (AI-extended card with the real photo outlined, smart vs centre crop), asset page "Brightened by Cloudinary AI" |
+| Traceability to originals **and transformations** | One original, many on-the-fly versions, each a transformation URL; the manifest lists them | Asset page "What Cloudinary made from this photo" (every version + its recipe), `/verify/[reportId]` |
+| Privacy of public content | **Incoming transformation** stores a public copy with faces blurred inside the file | Story page "Try to remove the blur" (the raw stored file is still blurred) |
+| Video | Frame extraction (`so_`), audio for transcription, **AI video preview** (`e_preview`) | Key frames on the video page, hover a video tile |
+| Cost awareness | Admin API usage | Dashboard "Cloudinary at work" |
+
+Two-minute Cloudinary demo: see [`DEMO-CLOUDINARY.md`](DEMO-CLOUDINARY.md).
+
 ## Architecture
 
 One Next.js app. No separate backend, queue or state library.
@@ -204,6 +222,9 @@ These photos are public data for a rehearsal, not evidence of anything the prese
 | `npm run upload-font` | One-time Hindi font upload to Cloudinary |
 | `npm run seed` / `npm run check-demo` | Synthetic demo data and the end-to-end rehearsal check (need the app running; `APP_URL` targets a deployed app). Run `npm run seed:real -- --reset-only` first if real sample data is loaded, because the checker expects exactly its own 14 photos |
 | `npm run seed:real` | Real public sample photos (see above) |
+| `npm run cloudinary:sync` | Writes trust/review/project/flags/tags/caption onto every file in Cloudinary and files them into project folders (safe to re-run, no AI units). Runs automatically after uploads, analysis, reviews and project changes |
+| `npm run second-opinion` | Cloudinary AI Vision second opinion for photos flagged as a photo of a screen/print (~320 units each, cached) |
+| `npx tsx scripts/try-*.ts` | One-call Cloudinary tests used before each feature (metadata, generative fill, public copy, enhance, AI Vision general) |
 
 ## Known limitations and quotas (please read)
 
@@ -217,6 +238,9 @@ These photos are public data for a rehearsal, not evidence of anything the prese
 - **Video metadata** is read from MP4/MOV atoms (time, and GPS from Android/QuickTime `©xyz` or iPhone `meta` keys). WebM and files without those atoms show "no metadata".
 - **Spoken numbers** come back from the transcript as digits ("40 bags"), so keyword search needs "40"; semantic search still works.
 - **No authentication.** It is a single demo workspace; anyone with the link can use the app. The verification and story pages are meant to be public.
+- **Face detection misses masked or very small faces** (Cloudinary `pixelate_faces`, used for every public image and the stored public copies). Check public photos with people before a demo.
+- **Images over 10 MB are refused** before upload: the Cloudinary free plan limit (CLAUDE.md said 15 MB).
+- **Generative fill costs about 0.05 credits per new AI-extended card** (cached afterwards) and takes ~6 s the first time; the page retries while Cloudinary answers 423.
 - Report and card images pixelate faces; the verification page's "Original" links point at the untouched originals (needed for traceability).
 
 ## Deploying
