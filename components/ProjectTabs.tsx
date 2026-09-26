@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import TabPending from "@/components/TabPending"
 
 export const PROJECT_TABS = [
   { id: "overview", label: "Overview" },
@@ -32,10 +33,11 @@ export default function ProjectTabs({ projectId, active, counts = {} }: { projec
                 href={tabHref(projectId, t.id)}
                 scroll={false}
                 aria-current={on ? "page" : undefined}
-                className={cn("flex items-center gap-1.5 whitespace-nowrap px-3 py-3 text-sm font-medium text-fg-2 shadow-[inset_0_-2px_0_transparent] transition-colors hover:text-fg max-md:py-3.5", on && "text-fg shadow-[inset_0_-2px_0_var(--fg)]")}
+                className={cn("relative flex items-center gap-1.5 whitespace-nowrap px-3 py-3 text-sm font-medium text-fg-2 shadow-[inset_0_-2px_0_transparent] transition-colors hover:text-fg max-md:py-3.5", on && "text-fg shadow-[inset_0_-2px_0_var(--fg)]")}
               >
                 {t.label}
                 {n !== undefined && n > 0 && <span className="font-mono text-[10px] leading-none text-fg-3">{n}</span>}
+                {!on && <TabPending />}
               </Link>
             </li>
           )

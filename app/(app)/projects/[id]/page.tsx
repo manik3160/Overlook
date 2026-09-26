@@ -54,35 +54,43 @@ export async function generateMetadata(props: PageProps<"/projects/[id]">): Prom
 export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const { id } = await props.params
   const tab = toTab((await props.searchParams).tab)
-  const { data: project } = await supabase.from("projects").select("*").eq("id", id).maybeSingle<Project>()
-  if (!project) notFound()
-
-  const [{ data: mine }, { data: free }] = await Promise.all([
+  // What the header and the tab bar need, fetched in parallel. Everything else is fetched only for the open tab:
+  // a tab click used to run ~12 queries one after another for all six tabs (3.5-4.5 s per click on Vercel).
+  const [{ data: project }, mine, { rows: evidence, rejected }, { data: pairRows }, { data: reportRows }] = await Promise.all([
+    supabase.from("projects").select("*").eq("id", id).maybeSingle<Project>(),
     selectAll<A>((from, to) =>
       supabase.from("assets").select(COLS).eq("project_id", id).order("taken_at", { ascending: true, nullsFirst: false }).order("id").range(from, to),
-    ).then((data) => ({ data })),
-    supabase.from("assets").select(COLS).is("project_id", null).order("created_at", { ascending: false }).limit(200),
+    ),
+    loadEvidence(id),
+    supabase.from("pairs").select("id, before_asset_id, after_asset_id, distance_m, days_apart, change_summary").eq("project_id", id).order("created_at"),
+    supabase.from("reports").select("id, kind, manifest_sha256, created_at").eq("project_id", id).in("kind", ["donor", "csr", "social"]).order("created_at", { ascending: false }),
   ])
+  if (!project) notFound()
   const assets = (mine ?? []) as A[]
-  const { rows: evidence, rejected } = await loadEvidence(id)
   const scorecard = computeScorecard(evidence)
-  const { data: pairRows } = await supabase.from("pairs").select("id, before_asset_id, after_asset_id, distance_m, days_apart, change_summary").eq("project_id", id).order("created_at")
-  const { data: reportRows } = await supabase.from("reports").select("id, kind, manifest_sha256, created_at").eq("project_id", id).in("kind", ["donor", "csr", "social"]).order("created_at", { ascending: false })
   const reports: ReportListItem[] = (reportRows ?? []).map((r) => ({ id: r.id, kind: r.kind, sha: r.manifest_sha256, createdAt: formatTime(r.created_at) }))
-  const campaign = await loadCampaign(id)
-  const { data: reelRow } = await supabase.from("reports").select("manifest, created_at").eq("project_id", id).eq("kind", "reel").order("created_at", { ascending: false }).limit(1).maybeSingle()
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "")
+  const none = Promise.resolve(null)
+
+  const [free, gaps, gapsQr, pay, satRow, claimRows, campaign, reelRow, storyCount] = await Promise.all([
+    tab === "evidence" ? supabase.from("assets").select(COLS).is("project_id", null).order("created_at", { ascending: false }).limit(200).then((r) => r.data) : none,
+    tab === "overview" ? loadGaps(id) : none,
+    tab === "overview" ? shotListQr(id) : none,
+    tab === "overview" || tab === "reports" ? loadMilestones(id) : none,
+    tab === "before-after" ? supabase.from("reports").select("manifest, manifest_sha256, created_at").eq("project_id", id).eq("kind", "satellite").order("created_at", { ascending: false }).limit(1).maybeSingle().then((r) => r.data) : none,
+    tab === "reports" ? supabase.from("reports").select("id, created_at, summary:manifest->summary, text:manifest->>input_text").eq("project_id", id).eq("kind", "claims").order("created_at", { ascending: false }).limit(5).then((r) => r.data) : none,
+    tab === "campaign" ? loadCampaign(id) : none,
+    tab === "campaign" ? supabase.from("reports").select("manifest, created_at").eq("project_id", id).eq("kind", "reel").order("created_at", { ascending: false }).limit(1).maybeSingle().then((r) => r.data) : none,
+    tab === "campaign" ? supabase.from("reports").select("id", { count: "exact", head: true }).eq("project_id", id).eq("kind", "social").then((r) => r.count) : none,
+  ])
   const reelSlides = ((reelRow?.manifest?.slides ?? []) as { slide_public_id: string }[]).map((s) => s.slide_public_id)
   const reel: ReelView | null = reelRow && cloud && reelSlides.length
     ? { url: reelUrl(cloud, reelSlides), downloadUrl: reelUrl(cloud, reelSlides, { download: "overlook-reel" }), seconds: reelSeconds(reelSlides.length), generatedAt: formatTime(reelRow.created_at), poster: posterUrl(cloud, reelSlides[0]) }
     : null
-  const { data: satRow } = await supabase.from("reports").select("manifest, manifest_sha256, created_at").eq("project_id", id).eq("kind", "satellite").order("created_at", { ascending: false }).limit(1).maybeSingle()
   const satellite: SatelliteView | null = satRow
     ? { ...satRow.manifest, source: satRow.manifest.satellite.source, generatedAt: formatTime(satRow.created_at), intact: manifestHash(satRow.manifest) === satRow.manifest_sha256 }
     : null
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "")
-  const [gaps, gapsQr, pay] = await Promise.all([loadGaps(id), shotListQr(id), loadMilestones(id)])
-  const { data: claimRows } = await supabase.from("reports").select("id, created_at, summary:manifest->summary, text:manifest->>input_text").eq("project_id", id).eq("kind", "claims").order("created_at", { ascending: false }).limit(5)
   const claimChecks: ClaimCheckView[] = ((claimRows ?? []) as { id: string; created_at: string; summary: { supported: number; partly: number; noEvidence: number }; text: string }[])
     .map((r) => ({ id: r.id, checkedAt: formatTime(r.created_at), ...r.summary, snippet: r.text.slice(0, 60) }))
   // Cost per verified outcome (only when a grant amount is set; migration 0004)
@@ -90,7 +98,6 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
   const verifiedSpots = (pairRows ?? []).filter((p) => verifiedIds.has(p.before_asset_id) && verifiedIds.has(p.after_asset_id)).length
   const grant = typeof project.grant_inr === "number" ? project.grant_inr : project.grant_inr ? Number(project.grant_inr) : null
   const cost = grant ? costPerOutcome({ grantInr: grant, verifiedPhotos: verifiedIds.size, verifiedSpots, releasablePct: pay?.statuses.length ? pay.releasable : null }) : null
-  const { count: storyCount } = await supabase.from("reports").select("id", { count: "exact", head: true }).eq("project_id", id).eq("kind", "social")
   const byId = new Map(evidence.map((e) => [e.id, e]))
   const pairs: PairView[] = (pairRows ?? []).flatMap((p) => {
     const b = byId.get(p.before_asset_id), a = byId.get(p.after_asset_id)
@@ -166,7 +173,7 @@ export default async function ProjectPage(props: PageProps<"/projects/[id]">) {
             </div>
           </div>
         )}
-        {gaps && (
+        {gaps && gapsQr && (
           <div className="mt-10 grid gap-4 border-t border-line pt-8">
             <h3 className="text-title">Evidence gaps: what is missing</h3>
             <GapsPanel gaps={gaps} qrDataUrl={gapsQr} listUrl={shotListUrl(id)} />
