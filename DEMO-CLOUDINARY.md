@@ -31,5 +31,20 @@ Note: with the current sample data only the exact duplicate is in the *Suspiciou
 **5. Two AIs agree (asset page of the screen photo, 10 s)**
 > "Our first AI flagged this as a photo of a laptop screen. Cloudinary AI Vision, asked independently, agrees."
 
-**6. Close on the numbers (dashboard, 10 s)**
+**5b. The photo says where it really is (asset page of `fake-far`, 15 s)**
+Scroll to **"Words in the photo"**.
+> "Cloudinary read the road signs in this photo: Gachibowli, Narsingi. That's Hyderabad, not the project site in Oregon, which is exactly why it was flagged." Then show the Marathi plot sign on `b-spacing` and search "4x4".
+
+**6. Evidence from anywhere (upload page, 15 s)**
+Press **"Import from Google Drive, a link or camera"** (Cloudinary's Upload Widget).
+> "Field teams keep photos in Google Drive or send links. Cloudinary imports them directly, and reads each file's location and time itself."
+
+**7. Caught editing the location (optional, 15 s)**
+Before the demo run `npm run check-metadata`, or show a flagged photo's audit trace:
+> "Cloudinary reads the metadata inside the stored file. If the location sent with the upload doesn't match, the photo is flagged for review."
+
+**8. Video with chapters (a video page, 10 s)**
+> "Cloudinary's video player puts a chapter at every key frame we checked, so a reviewer jumps straight to the moment behind each frame's trust score."
+
+**9. Close on the numbers (dashboard, 10 s)**
 **"Cloudinary at work"**: files stored, versions made on the fly, AI Vision checks, face-blurred public copies, photos labelled in the library, credits used.

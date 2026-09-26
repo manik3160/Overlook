@@ -2,6 +2,7 @@
 // review", never "fake" or "fraud"; humans decide in /review.
 import { haversineM } from "./geo"
 import { hammingDistance, NEAR_DUPLICATE_MAX_DISTANCE } from "./phash"
+import { metadataMismatch, type FileMeta } from "./cld-exif"
 
 export type TrustFlag = { code: string; severity: "info" | "warning" | "high"; reason: string; evidence: Record<string, unknown> }
 export type TrustBand = "Verified" | "Needs review" | "Suspicious"
@@ -40,6 +41,7 @@ export type TrustInput = {
   checks: TrustChecks | null // AI answers, null until analysed
   lowConfidence: boolean
   provenance?: TrustProvenance | null
+  fileMeta?: FileMeta | null // what Cloudinary read from the stored file itself (lib/cld-exif.ts)
 }
 export type TrustResult = { score: number; band: TrustBand; flags: TrustFlag[] }
 
@@ -57,6 +59,7 @@ export const TRUST_DEDUCTIONS = {
   IRRELEVANT: 10,
   AI_GENERATED_DECLARED: 40,
   IMPOSSIBLE_TRAVEL: 30,
+  METADATA_MISMATCH: 30,
 } as const
 
 // Impossible travel: the same signing device at two places faster than any road journey allows.
@@ -164,7 +167,7 @@ function geofenceFlag(asset: TrustAsset, project: TrustProject): TrustFlag | nul
 }
 
 export function computeTrust(input: TrustInput): TrustResult {
-  const { asset, project, others, checks, lowConfidence, provenance } = input
+  const { asset, project, others, checks, lowConfidence, provenance, fileMeta } = input
   const flags: TrustFlag[] = []
   let deduction = 0
 
@@ -181,6 +184,12 @@ export function computeTrust(input: TrustInput): TrustResult {
   if (travel) {
     flags.push(travel)
     deduction += TRUST_DEDUCTIONS.IMPOSSIBLE_TRAVEL
+  }
+  // Live captures are signed on the device, so only plain uploads are compared with the file's own metadata.
+  const mismatch = fileMeta && !asset.captured_live ? metadataMismatch({ lat: asset.lat, lng: asset.lng, taken_at: asset.taken_at }, fileMeta) : null
+  if (mismatch) {
+    flags.push({ code: "METADATA_MISMATCH", severity: "high", reason: `Flagged for review: Cloudinary read this photo's own metadata and ${mismatch.reasons.join(", and ")}.`, evidence: mismatch.evidence })
+    deduction += TRUST_DEDUCTIONS.METADATA_MISMATCH
   }
   if (checks?.photo_of_screen_or_print) {
     flags.push({ code: "PHOTO_OF_PHOTO", severity: "high", reason: "Flagged for review: this looks like a photo of a screen or a printed photograph.", evidence: {} })

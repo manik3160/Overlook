@@ -4,6 +4,7 @@ import { cloudinary } from "@/lib/cloudinary"
 import { supabase } from "@/lib/supabase"
 import { trustBand } from "@/lib/trust"
 import { FLAG_TITLES } from "@/lib/flag-titles"
+import { parseCloudinaryMetadata, type FileMeta } from "@/lib/cld-exif"
 
 // Writes what Overlook knows about each photo back onto the file in Cloudinary, so the Cloudinary Media Library
 // shows (and filters by) trust band, score, review, project, flags, AI tags and caption, and files sit in a folder per
@@ -48,7 +49,7 @@ type SyncRow = {
 // Folder names cannot contain slashes; keep them readable.
 const folderName = (name: string) => name.replace(/[/\\?&#%<>]+/g, " ").replace(/\s+/g, " ").trim() || "Untitled project"
 
-export function cloudinaryFields(row: SyncRow, projectName: string | null) {
+export function cloudinaryFields(row: SyncRow, projectName: string | null, photoText: string | null = null) {
   const band = row.trust_score === null ? "Not scored" : trustBand(row.trust_score)
   const flags = [...new Set((row.trust_flags ?? []).map((f) => f.code).filter((c) => c in FLAG_TITLES))]
   return {
@@ -60,7 +61,7 @@ export function cloudinaryFields(row: SyncRow, projectName: string | null) {
       overlook_flags: flags,
     },
     tags: ["overlook", ...(row.tags ?? [])],
-    context: row.caption ? { caption: row.caption, alt: row.caption } : {},
+    context: { ...(row.caption ? { caption: row.caption, alt: row.caption } : {}), ...(photoText ? { photo_text: photoText.replace(/\s+/g, " ").slice(0, 500) } : {}) },
     asset_folder: `Overlook/${projectName ? folderName(projectName) : "Inbox (no project yet)"}`,
   }
 }
@@ -88,11 +89,14 @@ export async function syncAssetsToCloudinary(ids: string[]): Promise<{ synced: n
     const projectIds = [...new Set(rows.map((r) => r.project_id).filter((p): p is string => !!p))]
     const { data: projects } = projectIds.length ? await supabase.from("projects").select("id, name").in("id", projectIds) : { data: [] }
     const nameOf = new Map((projects ?? []).map((p) => [p.id as string, p.name as string]))
+    // words Cloudinary OCR read in the photo, so the Media Library can find it by them too
+    const { data: texts } = await supabase.from("analyses").select("asset_id, result").eq("kind", "ocr").in("asset_id", rows.map((r) => r.id))
+    const textOf = new Map((texts ?? []).map((t) => [t.asset_id as string, ((t.result as { text?: string | null })?.text ?? null)]))
 
     for (let j = 0; j < rows.length; j += 4) {
       await Promise.all(
         (rows.slice(j, j + 4) as SyncRow[]).map(async (row) => {
-          const f = cloudinaryFields(row, row.project_id ? nameOf.get(row.project_id) ?? null : null)
+          const f = cloudinaryFields(row, row.project_id ? nameOf.get(row.project_id) ?? null : null, textOf.get(row.id) ?? null)
           try {
             await cloudinary.uploader.explicit(row.public_id, { type: "upload", resource_type: row.resource_type === "video" ? "video" : "image", ...f })
             synced++
@@ -118,12 +122,13 @@ export function syncLater(ids: string[]): void {
   }
 }
 
-export type CloudinaryRecord = { folder: string | null; band: string | null; score: number | null; review: string | null; project: string | null; flags: string[]; tags: string[]; caption: string | null }
+export type CloudinaryRecord = { folder: string | null; band: string | null; score: number | null; review: string | null; project: string | null; flags: string[]; tags: string[]; caption: string | null; fileMeta: FileMeta | null }
 
 // Reads back what is stored on the file in Cloudinary right now (Admin API), with readable labels. Null if unreachable.
 export async function readCloudinaryRecord(publicId: string, resourceType: string): Promise<CloudinaryRecord | null> {
   try {
-    const r = await cloudinary.api.resource(publicId, { resource_type: resourceType === "video" ? "video" : "image" })
+    const image = resourceType !== "video"
+    const r = await cloudinary.api.resource(publicId, { resource_type: image ? "image" : "video", ...(image ? { image_metadata: true } : {}) })
     const m = (r.metadata ?? {}) as Record<string, unknown>
     const label = (field: string, v: unknown) => METADATA_FIELDS.find((f) => f.external_id === field)?.values?.find((x) => x.external_id === v)?.value ?? null
     return {
@@ -135,6 +140,7 @@ export async function readCloudinaryRecord(publicId: string, resourceType: strin
       flags: Array.isArray(m.overlook_flags) ? m.overlook_flags.map((c) => FLAG_TITLES[String(c)] ?? String(c)) : [],
       tags: ((r.tags ?? []) as string[]).filter((t) => t !== "overlook"),
       caption: r.context?.custom?.caption ?? null,
+      fileMeta: image ? parseCloudinaryMetadata(r.image_metadata as Record<string, unknown> | undefined) : null,
     }
   } catch (e) {
     console.error("[cloudinary-sync] read failed:", (e as { error?: unknown })?.error ?? e)

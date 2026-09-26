@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase"
 import { embedText } from "@/lib/gemini"
 import { dayKey } from "@/lib/dates"
 import { trustBand, type TrustBand } from "@/lib/trust"
+import { assetsWithText } from "@/lib/ocr"
 
 export type SearchParams = { q?: string; project?: string; tag?: string; band?: string; from?: string; to?: string; type?: string }
 export type SearchHit = {
@@ -13,6 +14,7 @@ export type SearchHit = {
   status: string; trust_flags: { code: string; severity: string }[] | null // only used to draw the tile's develop state
   lat: number | null; lng: number | null
   transcriptMatch?: boolean
+  photoTextMatch?: boolean // the query appears in words Cloudinary OCR read in the photo
 }
 export type SearchOutcome = { hits: SearchHit[]; mode: "semantic" | "filters"; hidden: number }
 
@@ -67,7 +69,16 @@ export async function searchAssets(p: SearchParams): Promise<SearchOutcome> {
   let kw = supabase.from("assets").select(COLS).ilike("transcript", `%${like}%`).limit(20)
   if (p.project) kw = kw.eq("project_id", p.project)
   const { data: kwRows } = await kw
-  const keywordHits = ((kwRows ?? []) as Omit<SearchHit, "similarity">[]).map((r): SearchHit => ({ ...r, similarity: null, transcriptMatch: true })).filter((h) => passesFilters(h, p))
+  const transcriptHits = ((kwRows ?? []) as Omit<SearchHit, "similarity">[]).map((r): SearchHit => ({ ...r, similarity: null, transcriptMatch: true }))
+  // Exact words read in photos (signboards, banners) rank with them.
+  const textIds = (await assetsWithText(q)).filter((id) => !transcriptHits.some((h) => h.id === id))
+  let textRows: Omit<SearchHit, "similarity">[] = []
+  if (textIds.length) {
+    let tq = supabase.from("assets").select(COLS).in("id", textIds)
+    if (p.project) tq = tq.eq("project_id", p.project)
+    textRows = ((await tq).data ?? []) as Omit<SearchHit, "similarity">[]
+  }
+  const keywordHits = [...transcriptHits, ...textRows.map((r): SearchHit => ({ ...r, similarity: null, photoTextMatch: true }))].filter((h) => passesFilters(h, p))
 
   const embedding = await embedQuery(q)
   const { data: matches, error } = await supabase.rpc("match_assets", {

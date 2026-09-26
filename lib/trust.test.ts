@@ -185,3 +185,20 @@ describe("declared AI-generated", () => {
     expect(run({ provenance: { aiDeclared: false, source: null } }).flags).toEqual([])
   })
 })
+
+describe("METADATA_MISMATCH (what Cloudinary read from the file)", () => {
+  const file = { lat: site.lat, lng: site.lng, takenAt: "2026-09-12T10:00:00.000Z", hasCameraData: true }
+  it("agrees with an honest upload: no flag", () => expect(run({ fileMeta: file }).score).toBe(100))
+  it("edited GPS: -30 with the distance as evidence", () => {
+    const r = run({ fileMeta: { ...file, lat: 19.076, lng: 72.8777 } })
+    expect(codes(r)).toEqual(["METADATA_MISMATCH"])
+    expect(r.score).toBe(70)
+    expect(r.flags[0].reason).toMatch(/^Flagged for review: Cloudinary read this photo's own metadata and the location sent is/)
+  })
+  it("live captures are not compared (they are signed on the device)", () => {
+    expect(codes(run({ asset: asset({ captured_live: true }), fileMeta: { ...file, lat: 0, lng: 0 } }))).toEqual(["CAPTURED_LIVE"])
+  })
+  it("no file metadata at all: nothing to compare, no flag", () => {
+    expect(run({ fileMeta: { lat: null, lng: null, takenAt: null, hasCameraData: false } }).score).toBe(100)
+  })
+})

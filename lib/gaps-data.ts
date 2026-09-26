@@ -23,9 +23,9 @@ export async function loadGaps(projectId: string): Promise<ProjectGaps | null> {
     beforeIds: phases?.before ?? null,
     now: Date.now(),
   })
-  // Small thumbnails of the photos to line up with (the field team sees them in the shot list).
+  // Small thumbnails of the photos to line up with (the field team sees them in the shot list; faces pixelated, as on every shared page).
   const byId = new Map(rows.map((r) => [r.id, r.secure_url]))
-  const ghostThumbs = Object.fromEntries(report.shots.flatMap((s) => (s.ghostId && byId.has(s.ghostId) ? [[s.ghostId, byId.get(s.ghostId)!.replace("/upload/", "/upload/c_fill,w_240,h_180,f_auto,q_auto/")]] : [])))
+  const ghostThumbs = Object.fromEntries(report.shots.flatMap((s) => (s.ghostId && byId.has(s.ghostId) ? [[s.ghostId, byId.get(s.ghostId)!.replace("/upload/", "/upload/e_pixelate_faces/c_fill,w_240,h_180,f_auto,q_auto/")]] : [])))
   return { ...report, project: { id: p.id, name: p.name }, ghostThumbs }
 }
 

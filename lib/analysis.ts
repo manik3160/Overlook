@@ -6,6 +6,7 @@ import { visionTag, type VisionTags } from "@/lib/vision"
 import { recomputeTrust } from "@/lib/trust-db"
 import { syncLater } from "@/lib/cloudinary-sync"
 import { screenSecondOpinion } from "@/lib/second-opinion"
+import { readTextInPhoto } from "@/lib/ocr"
 import { processVideo } from "@/lib/video-processing"
 
 export type AssetRow = { id: string; public_id: string; secure_url: string; etag: string | null; resource_type: string }
@@ -87,7 +88,9 @@ export async function analyzeAsset(asset: AssetRow): Promise<AnalysisOutcome> {
     if (signals.garbage_visible) tags.add("garbage_present")
     if (signals.vegetation !== "none") tags.add("vegetation")
 
-    const embedSource = [caption, [...tags].join(" ")].filter(Boolean).join(". ")
+    // Words on signboards/banners (Cloudinary OCR add-on), so "plot 4x4" style searches find the photo.
+    const words = await readTextInPhoto({ id: asset.id, secure_url: asset.secure_url, resource_type: "image" })
+    const embedSource = [caption, [...tags].join(" "), words?.text ? `Text in the photo: ${words.text}` : ""].filter(Boolean).join(". ")
     let embedding: number[] | null = null
     if (embedSource) {
       const emb = await cachedCall<number[]>("gemini_embedding", asset.id, { text: embedSource, dims: 768 }, () => embedText(embedSource))

@@ -9,6 +9,7 @@ export const FLAG_TITLES: Record<string, string> = {
   IRRELEVANT: "Doesn't look like field work",
   AI_GENERATED_DECLARED: "Declares it was made with generative AI",
   IMPOSSIBLE_TRAVEL: "Same device, two places too far apart",
+  METADATA_MISMATCH: "Location or time sent doesn't match the file",
   CAPTURED_LIVE: "Captured live and signed on the device",
   NO_METADATA: "No location or time metadata",
   LOW_CONFIDENCE: "Couldn't classify confidently",

@@ -14,6 +14,8 @@ import { resolve } from "node:path"
 import { config } from "dotenv"
 import { v2 as cloudinary } from "cloudinary"
 import { createClient } from "@supabase/supabase-js"
+import { SCREEN_CHECK_INPUT, SCREEN_CHECK_KIND } from "../lib/vision-prompts"
+import { EMPTY_FILE_META } from "../lib/cld-exif"
 
 config({ path: ".env.local" })
 const APP = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "")
@@ -61,7 +63,7 @@ const api = async (path: string, body?: object) => {
 const cacheKey = (kind: string, assetId: string, input: unknown) => createHash("sha256").update(`${kind}|${assetId}|${JSON.stringify(input)}`).digest("hex")
 
 async function reset() {
-  const { data: projects } = await sb.from("projects").select("id").like("name", "% (demo)")
+  const { data: projects } = await sb.from("projects").select("id, name").like("name", "% (demo)")
   const pids = (projects ?? []).map((p) => p.id as string)
   if (pids.length) {
     const { data: reports } = await sb.from("reports").select("id, pdf_public_id").in("project_id", pids)
@@ -70,7 +72,13 @@ async function reset() {
     await sb.from("projects").delete().in("id", pids) // cascades pairs
   }
   const { data: assets } = await sb.from("assets").select("id, public_id").like("public_id", "evidence/demo/%")
-  for (const a of assets ?? []) await cloudinary.uploader.destroy(a.public_id)
+  for (const a of assets ?? []) {
+    await cloudinary.uploader.destroy(a.public_id)
+    await cloudinary.uploader.destroy(`overlook/public/${a.id}`).catch(() => null) // face-blurred public copy, if one was made
+  }
+  // the now-empty Media Library folders the Cloudinary sync made for the demo projects
+  await cloudinary.api.delete_folder("Overlook/Inbox (no project yet)").catch(() => null) // only succeeds when empty
+  for (const p of projects ?? []) await cloudinary.api.delete_folder(`Overlook/${String(p.name).replace(/[/\\?&#%<>]+/g, " ").replace(/\s+/g, " ").trim()}`).catch(() => null)
   if (assets?.length) await sb.from("assets").delete().in("id", assets.map((a) => a.id))
   console.log(`Removed demo data: ${assets?.length ?? 0} assets, ${pids.length} projects.`)
 }
@@ -84,10 +92,18 @@ async function seed() {
       width: up.width, height: up.height, taken_at: it.time, lat: it.at?.lat ?? null, lng: it.at?.lng ?? null, has_exif: it.time !== null || it.at !== null,
     })
     ids[it.name] = asset.id
+    // The rehearsal FABRICATES location/time for public sample images whose own camera metadata says otherwise, which
+    // the tamper check (METADATA_MISMATCH) would rightly flag. Record the files' metadata as absent so the planted
+    // problems stay exactly the six listed; the seed's final trust recompute then uses this.
+    await sb.from("analyses").upsert({ asset_id: asset.id, kind: "cloudinary_exif", input_hash: cacheKey("cloudinary_exif", asset.id, { etag: up.etag, v: 1 }), result: EMPTY_FILE_META }, { onConflict: "asset_id,kind,input_hash" })
     if (!it.skipCache) {
       await sb.from("analyses").upsert([
         { asset_id: asset.id, kind: "gemini_analysis", input_hash: cacheKey("gemini_analysis", asset.id, { model: "flash", v: 1 }), result: { caption: it.caption, signals: it.signals, checks: it.checks ?? ok } },
         { asset_id: asset.id, kind: "ai_vision_tagging", input_hash: cacheKey("ai_vision_tagging", asset.id, { v: 1 }), result: { tags: it.tags, unitsUsed: null, unitsRemaining: null } },
+        // the Cloudinary AI Vision second opinion (asked only for screen/print photos), so seeding spends no AI units
+        // Cloudinary OCR (words in the photo): none for the rehearsal images, so seeding spends no OCR operations
+        { asset_id: asset.id, kind: "ocr", input_hash: cacheKey("ocr", asset.id, { v: 1 }), result: { text: null, locale: null } },
+        ...((it.checks as { photo_of_screen_or_print?: boolean } | undefined)?.photo_of_screen_or_print ? [{ asset_id: asset.id, kind: SCREEN_CHECK_KIND, input_hash: cacheKey(SCREEN_CHECK_KIND, asset.id, SCREEN_CHECK_INPUT), result: { agrees: true, answer: "Yes (seeded)" } }] : []),
       ], { onConflict: "asset_id,kind,input_hash" })
     }
     console.log(`  uploaded ${it.name}`)

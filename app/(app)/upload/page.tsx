@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Uploader from "@/components/Uploader"
+import CloudImport from "@/components/CloudImport"
 import AnalysisPanel from "@/components/AnalysisPanel"
 import EvidenceTile, { TileGrid, type TileAsset } from "@/components/EvidenceTile"
 import { Eyebrow, PageHeader, Section } from "@/components/ui/layout"
@@ -27,13 +28,14 @@ export default async function UploadPage() {
         eyebrow="Evidence in"
         title={<><b className="font-semibold">Upload</b> &amp; analyze</>}
         lede={assets.length === 0 ? "Add photos and video. Location and time are read from each file before it leaves your device." : `${assets.length} file${assets.length === 1 ? "" : "s"} in the ledger, ${counts.done} analyzed.`}
-        meta="Images up to 15 MB · videos up to 100 MB"
+        meta="Images up to 10 MB · videos up to 100 MB"
       />
 
       <div className="mb-16 grid gap-10 lg:grid-cols-12">
         <section aria-labelledby="up-h" className="grid content-start gap-5 lg:col-span-7">
           <div className="grid gap-2"><Eyebrow numbered>01 · Upload</Eyebrow><h2 id="up-h" className="text-h2">Add field evidence</h2></div>
           <Uploader />
+          {process.env.CLOUDINARY_API_KEY && <CloudImport apiKey={process.env.CLOUDINARY_API_KEY} />}
         </section>
         <section aria-labelledby="an-h" className="lg:col-span-5 lg:border-l lg:border-line lg:pl-10">
           <div className="mb-5 grid gap-2"><Eyebrow numbered>02 · Analysis</Eyebrow><h2 id="an-h" className="text-h2">Read what is in each photo</h2></div>

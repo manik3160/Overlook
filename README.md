@@ -67,6 +67,10 @@ is marked **✦ Cloudinary** in the app.
 | Traceability to originals **and transformations** | One original, many on-the-fly versions, each a transformation URL; the manifest lists them | Asset page "What Cloudinary made from this photo" (every version + its recipe), `/verify/[reportId]` |
 | Privacy of public content | **Incoming transformation** stores a public copy with faces blurred inside the file | Story page "Try to remove the blur" (the raw stored file is still blurred) |
 | Video | Frame extraction (`so_`), audio for transcription, **AI video preview** (`e_preview`) | Key frames on the video page, hover a video tile |
+| Getting evidence in from anywhere | **Upload Widget** (Google Drive, web link, camera) signed by our own route | `/upload` "Or import from somewhere else" |
+| Verifying uploads | Cloudinary reads each stored photo's **own metadata** (`image_metadata`) and compares it with what was sent: an edited location/time is flagged `METADATA_MISMATCH`; imports get their location/time from it | Trust audit on the asset page; "Inside the file" row in the Cloudinary panel |
+| Identify locations & activities, searchable | **OCR add-on** (Text Detection and Extraction) reads signboards, plot numbers and banners in any script (Marathi, Hindi, Telugu, English…); words go into search and onto the file in the Media Library (`photo_text` context) | Asset page "Words in the photo"; `/search` "Words in photo" |
+| Video review | **Cloudinary Video Player** with a chapter at every key frame, seek-bar thumbnails, `f_auto:video` | Video and key-frame pages |
 | Cost awareness | Admin API usage | Dashboard "Cloudinary at work" |
 
 Two-minute Cloudinary demo: see [`DEMO-CLOUDINARY.md`](DEMO-CLOUDINARY.md).
@@ -223,6 +227,9 @@ These photos are public data for a rehearsal, not evidence of anything the prese
 | `npm run seed` / `npm run check-demo` | Synthetic demo data and the end-to-end rehearsal check (need the app running; `APP_URL` targets a deployed app). Run `npm run seed:real -- --reset-only` first if real sample data is loaded, because the checker expects exactly its own 14 photos |
 | `npm run seed:real` | Real public sample photos (see above) |
 | `npm run cloudinary:sync` | Writes trust/review/project/flags/tags/caption onto every file in Cloudinary and files them into project folders (safe to re-run, no AI units). Runs automatically after uploads, analysis, reviews and project changes |
+| `npm run cloudinary-exif` | Cloudinary reads every stored photo's own metadata (cached; Admin API, no AI units) and prints any upload that disagrees with it. Then `POST /api/trust/recompute` |
+| `npm run check-metadata` | End-to-end proof of the tamper flag through the real upload path (signing route, Cloudinary, `/api/assets`); deletes its test uploads |
+| `npm run ocr` | Reads words in every analysed photo not read yet (1 OCR operation each, cached; prints the count first) and writes them onto the files in Cloudinary. New photos are read during analysis |
 | `npm run second-opinion` | Cloudinary AI Vision second opinion for photos flagged as a photo of a screen/print (~320 units each, cached) |
 | `npx tsx scripts/try-*.ts` | One-call Cloudinary tests used before each feature (metadata, generative fill, public copy, enhance, AI Vision general) |
 
@@ -239,6 +246,11 @@ These photos are public data for a rehearsal, not evidence of anything the prese
 - **Spoken numbers** come back from the transcript as digits ("40 bags"), so keyword search needs "40"; semantic search still works.
 - **No authentication.** It is a single demo workspace; anyone with the link can use the app. The verification and story pages are meant to be public.
 - **Face detection misses masked or very small faces** (Cloudinary `pixelate_faces`, used for every public image and the stored public copies). Check public photos with people before a demo.
+- **The upload-signing route only signs our own settings** (folder `evidence/<name>` or `registry-checks`, our preset, phash, a fresh timestamp); anything else (e.g. `public_id` + `overwrite`) is refused, so an evidence original cannot be replaced at the same URL.
+- **Metadata tamper check** only compares when the stored file itself carries GPS/time. Stripped files (WhatsApp, re-encoded downloads, the Wikimedia sample photos) are never flagged; they stay "no metadata".
+- **Upload Widget:** Google Drive uses Cloudinary's own Drive app; Dropbox is not offered (it needs our own Dropbox app key).
+- **Video costs credits per second** of video (delivery and transformations such as `f_auto:video` and seek thumbnails); testing a 148 s video cost about 1.2 credits once.
+- **OCR** needs the "Text Detection and Extraction" add-on (free plan) active on the account; `npx tsx scripts/try-ocr.ts` checks it. Cloudinary returns no OCR for `explicit` on an existing file, so each photo is read from a temporary 2000 px copy that is deleted straight after (1 OCR operation per photo, cached).
 - **Images over 10 MB are refused** before upload: the Cloudinary free plan limit (CLAUDE.md said 15 MB).
 - **Generative fill costs about 0.05 credits per new AI-extended card** (cached afterwards) and takes ~6 s the first time; the page retries while Cloudinary answers 423.
 - Report and card images pixelate faces; the verification page's "Original" links point at the untouched originals (needed for traceability).

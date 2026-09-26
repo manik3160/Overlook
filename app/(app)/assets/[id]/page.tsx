@@ -15,8 +15,12 @@ import { InlineNotice } from "@/components/ui/notice"
 import { supabase } from "@/lib/supabase"
 import { readCloudinaryRecord } from "@/lib/cloudinary-sync"
 import { loadScreenOpinion } from "@/lib/second-opinion"
+import { loadPhotoText } from "@/lib/ocr"
+import PhotoText from "@/components/PhotoText"
 import CloudinaryMark from "@/components/CloudinaryMark"
 import CloudinaryRecord from "@/components/CloudinaryRecord"
+import CloudVideo from "@/components/CloudVideo"
+import { thumbUrl } from "@/lib/cloudinary-url"
 import RenditionStrip from "@/components/RenditionStrip"
 import { enhanceCompare, renditionsFor } from "@/lib/renditions"
 import { NA } from "@/lib/copy"
@@ -53,13 +57,14 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
   const { data: project } = asset.project_id ? await supabase.from("projects").select("id, name").eq("id", asset.project_id).maybeSingle() : { data: null }
   const { data: parent } = asset.parent_asset_id ? await supabase.from("assets").select("id, public_id, secure_url").eq("id", asset.parent_asset_id).maybeSingle() : { data: null }
   const { data: frames } = asset.resource_type === "video"
-    ? await supabase.from("assets").select("id, secure_url, resource_type, frame_second, status, trust_score, trust_flags, review_status").eq("parent_asset_id", asset.id).order("frame_second")
+    ? await supabase.from("assets").select("id, secure_url, resource_type, frame_second, status, trust_score, trust_flags, review_status, caption").eq("parent_asset_id", asset.id).order("frame_second")
     : { data: null }
   // Ghost Camera: retakes lined up with this photo, and the latest time-lapse of this spot.
   const { data: retakes } = asset.resource_type === "image" ? await supabase.from("assets").select("id").eq("capture_proof->payload->>ghostAssetId", asset.id) : { data: null }
   const { data: lapseRow } = retakes?.length ? await supabase.from("reports").select("manifest, created_at").eq("kind", "timelapse").eq("manifest->>before_id", asset.id).order("created_at", { ascending: false }).limit(1).maybeSingle() : { data: null }
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
   const cldRecord = await readCloudinaryRecord(asset.public_id, asset.resource_type)
+  const photoText = asset.resource_type === "image" ? await loadPhotoText(asset.id) : null
   const screenOpinion = (asset.trust_flags ?? []).some((f) => f.code === "PHOTO_OF_PHOTO") ? await loadScreenOpinion(asset.id) : null
   const lapseSlides = ((lapseRow?.manifest?.slides ?? []) as { slide_public_id: string }[]).map((s) => s.slide_public_id)
   const timelapse: ReelView | null = lapseRow && cloud && lapseSlides.length
@@ -89,7 +94,16 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
         <div className="lg:col-span-7">
           <div className="grid gap-6 lg:sticky lg:top-24">
             {asset.resource_type === "video" ? (
-              <video controls src={asset.secure_url} className="max-h-[72vh] w-full bg-surface-2" />
+              <div className="grid gap-2">
+                <CloudVideo
+                  cloudName={cloud ?? ""}
+                  publicId={asset.public_id}
+                  fallbackSrc={asset.secure_url}
+                  poster={thumbUrl(asset.secure_url, "video").replace("c_fill,w_240,h_240", "c_limit,w_1280")}
+                  chapters={(frames ?? []).filter((f) => f.frame_second !== null).map((f) => ({ second: Number(f.frame_second), title: `${formatClock(Number(f.frame_second))} · ${(f.caption as string | null)?.slice(0, 60) ?? "key frame"}` }))}
+                />
+                {!!frames?.length && <p className="flex flex-wrap items-center gap-2 text-small"><CloudinaryMark says="Cloudinary Video Player, with a chapter at every key frame the analysis checked" />{frames.length} chapters, one per key frame: jump straight to the moment behind each frame&apos;s trust score.</p>}
+              </div>
             ) : (
               // The main image is always full colour: reviewers must see the real photo (DESIGN.md 4.9).
               // eslint-disable-next-line @next/next/no-img-element
@@ -138,7 +152,7 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
           {parent && second !== null && (
             <Panel className="grid gap-3 p-5">
               <p className="text-[15px]">Frame at <b className="font-mono">{formatClock(second)}</b> of the video <Link href={`/assets/${parent.id}`} className={link}>{shortId(parent.public_id)}</Link></p>
-              <video controls src={playerUrl(parent.secure_url, second)} className="max-h-80 w-full bg-surface-2" />
+              <CloudVideo cloudName={cloud ?? ""} publicId={parent.public_id} fallbackSrc={parent.secure_url} chapters={[]} startAt={second} />
               <a href={playerUrl(parent.secure_url, second)} className={`${link} text-[13px]`} target="_blank" rel="noreferrer">Open the original video at {formatClock(second)} ↗</a>
             </Panel>
           )}
@@ -168,6 +182,8 @@ export default async function AssetPage(props: PageProps<"/assets/[id]">) {
               ]} />
             ) : <p className="text-small">Signals appear after analysis.</p>}
           </section>
+
+          {photoText && <PhotoText text={photoText} />}
 
           <section className="grid gap-4" aria-labelledby="where-h">
             <Eyebrow>03 · When &amp; where</Eyebrow>

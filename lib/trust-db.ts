@@ -3,6 +3,7 @@ import { syncLater } from "@/lib/cloudinary-sync"
 import { selectAll, supabase } from "@/lib/supabase"
 import { canonicalJson } from "@/lib/manifest"
 import { computeTrust, type TrustAsset, type TrustChecks, type TrustFlag, type TrustProject, type TrustProvenance } from "@/lib/trust"
+import type { FileMeta } from "@/lib/cld-exif"
 
 type Row = Omit<TrustAsset, "captured_live" | "device" | "org"> & { capture_proof: { verified?: boolean; deviceId?: string } | null; status: string; tags: string[] | null; caption: string | null; resource_type: string; trust_score: number | null; trust_flags: TrustFlag[] | null }
 
@@ -23,7 +24,7 @@ async function inParallel<T>(items: T[], limit: number, fn: (item: T) => Promise
 // Every read is paged (Supabase caps a request at 1,000 rows) so duplicate checks see the whole collection.
 export async function recomputeTrust(ids?: string[]): Promise<number> {
   if (ids && ids.length === 0) return 0
-  const [rows, projects, analyses, provenance] = await Promise.all([
+  const [rows, projects, analyses, provenance, fileMetas] = await Promise.all([
     selectAll<Row>((from, to) => supabase.from("assets").select(ROW_COLS).order("id").range(from, to)),
     // "*" so this keeps working before migration 0004 adds projects.organization
     selectAll<TrustProject & { id: string; organization?: string | null }>((from, to) => supabase.from("projects").select("*").order("id").range(from, to)),
@@ -34,7 +35,11 @@ export async function recomputeTrust(ids?: string[]): Promise<number> {
     selectAll<{ asset_id: string; result: TrustProvenance }>((from, to) =>
       supabase.from("analyses").select("asset_id, result").eq("kind", "provenance").order("id").range(from, to).overrideTypes<{ asset_id: string; result: TrustProvenance }[], { merge: false }>(),
     ),
+    selectAll<{ asset_id: string; result: FileMeta }>((from, to) =>
+      supabase.from("analyses").select("asset_id, result").eq("kind", "cloudinary_exif").order("id").range(from, to).overrideTypes<{ asset_id: string; result: FileMeta }[], { merge: false }>(),
+    ),
   ])
+  const fileMetaByAsset = new Map(fileMetas.map((f) => [f.asset_id, f.result]))
   const orgByProject = new Map(projects.map((p) => [p.id, p.organization ?? null]))
   const provenanceByAsset = new Map(provenance.map((p) => [p.asset_id, p.result]))
   // what the pure trust code sees for every asset: its organisation and, for live captures, the signing device
@@ -59,6 +64,7 @@ export async function recomputeTrust(ids?: string[]): Promise<number> {
       others: all, // computeTrust only compares against EARLIER uploads, so the asset itself never matches
       checks: checksFor(asset),
       provenance: provenanceByAsset.get(asset.id) ?? null,
+      fileMeta: fileMetaByAsset.get(asset.id) ?? null,
       // videos have no tags: they are low-confidence only when nothing could be said about them (no transcript summary)
       lowConfidence: analysed && (asset.resource_type === "video" ? !asset.caption : (asset.tags ?? []).length === 0 || !asset.caption),
     })

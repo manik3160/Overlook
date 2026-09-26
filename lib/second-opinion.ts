@@ -2,23 +2,18 @@ import "server-only"
 import { cachedCall } from "@/lib/cache"
 import { supabase } from "@/lib/supabase"
 import { visionAsk } from "@/lib/vision"
+import { parseYesNo, SCREEN_CHECK_INPUT, SCREEN_CHECK_KIND, SCREEN_PROMPT } from "@/lib/vision-prompts"
 
 // Cloudinary AI Vision second opinion on the "photo of a screen or print" flag. Asked ONLY for photos Gemini already
 // flagged (about 320 AI Vision units each), cached in `analyses`. It never changes the score: it tells the reviewer
 // whether a second, independent AI agrees.
-export const SCREEN_PROMPT = "Answer with one word, yes or no. Is this a photograph of a screen, monitor, phone display or a printed photograph, rather than a direct photo of a real scene?"
-const KIND = "ai_vision_screen_check"
+const KIND = SCREEN_CHECK_KIND
 export type ScreenOpinion = { agrees: boolean | null; answer: string }
-
-export const parseYesNo = (answer: string): boolean | null => {
-  const a = answer.trim().toLowerCase()
-  return /^yes\b/.test(a) ? true : /^no\b/.test(a) ? false : null
-}
 
 export async function screenSecondOpinion(asset: { id: string; secure_url: string }): Promise<ScreenOpinion | null> {
   try {
     const url = asset.secure_url.replace("/upload/", "/upload/c_limit,w_1024,h_1024,f_jpg,q_auto/")
-    const { result } = await cachedCall<ScreenOpinion>(KIND, asset.id, { v: 1, prompt: SCREEN_PROMPT }, async () => {
+    const { result } = await cachedCall<ScreenOpinion>(KIND, asset.id, SCREEN_CHECK_INPUT, async () => {
       const { answers } = await visionAsk(url, [SCREEN_PROMPT])
       const answer = answers[0] ?? ""
       return { agrees: parseYesNo(answer), answer }

@@ -3,6 +3,7 @@ import CloudinaryMark from "@/components/CloudinaryMark"
 import { Eyebrow, KeyValue } from "@/components/ui/layout"
 import { InlineNotice } from "@/components/ui/notice"
 import { NA } from "@/lib/copy"
+import { formatTime } from "@/lib/dates"
 
 // What Overlook has written onto this file in the Cloudinary Media Library, read live from Cloudinary.
 export default function CloudinaryRecord({ record }: { record: Rec | null }) {
@@ -25,6 +26,9 @@ export default function CloudinaryRecord({ record }: { record: Rec | null }) {
           ["Flagged because", record.flags.length ? record.flags.join(", ") : "nothing"],
           ["AI tags", record.tags.length ? record.tags.map((t) => t.replaceAll("_", " ")).join(", ") : NA],
           ["Caption", record.caption ?? NA],
+          ...(record.fileMeta ? [["Inside the file", record.fileMeta.lat === null && !record.fileMeta.takenAt
+            ? "no location or time (Cloudinary checked the file itself)"
+            : [record.fileMeta.lat !== null ? `GPS ${record.fileMeta.lat.toFixed(5)}, ${record.fileMeta.lng?.toFixed(5)}` : "no GPS", record.fileMeta.takenAt ? `taken ${formatTime(record.fileMeta.takenAt)} IST` : "no time"].join(" · ")] as [string, React.ReactNode]] : []),
         ]} />
       ) : (
         <InlineNotice>Could not reach Cloudinary right now.</InlineNotice>

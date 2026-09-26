@@ -97,7 +97,7 @@ export default async function SearchPage(props: PageProps<"/search">) {
           <TileGrid>
             {outcome.hits.map((h) => (
               <li key={h.id}>
-                <EvidenceTile asset={h} matchChip={h.transcriptMatch ? "Words in transcript" : h.similarity !== null ? `${Math.round(h.similarity * 100)}% match` : undefined}>
+                <EvidenceTile asset={h} matchChip={h.transcriptMatch ? "Words in transcript" : h.photoTextMatch ? "Words in photo" : h.similarity !== null ? `${Math.round(h.similarity * 100)}% match` : undefined}>
                   {h.transcript && <span className="text-small text-[12px] italic"><Highlight text={`“${snippet(h.transcript, params.q ?? "")}”`} query={params.q ?? ""} /></span>}
                   {h.project_id && <span className="text-data text-fg-3">{projectName.get(h.project_id) ?? "unknown project"}</span>}
                 </EvidenceTile>
