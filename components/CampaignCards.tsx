@@ -47,7 +47,7 @@ export default function CampaignCards({ campaign }: { campaign: Campaign }) {
 
       <section className="grid gap-4" aria-labelledby="ai-card-h">
         <div className="flex flex-wrap items-center gap-3">
-          <h3 id="ai-card-h" className="text-[17px] font-semibold">AI-extended story card</h3>
+          <h3 id="ai-card-h" className="text-title">AI-extended story card</h3>
           <CloudinaryMark says="Cloudinary generative fill paints the missing edges instead of cropping the photo" />
         </div>
         <p className="max-w-[62ch] text-[15px] leading-6 text-fg-2">
@@ -74,23 +74,24 @@ export default function CampaignCards({ campaign }: { campaign: Campaign }) {
 
       <section className="grid gap-4" aria-labelledby="crop-h">
         <div className="flex flex-wrap items-center gap-3">
-          <h3 id="crop-h" className="text-[17px] font-semibold">Smart crop</h3>
+          <h3 id="crop-h" className="text-title">Smart crop</h3>
           <CloudinaryMark says="Cloudinary finds the most important part of the photo and keeps it in frame" />
         </div>
         <p className="max-w-[62ch] text-[15px] leading-6 text-fg-2">
           The same photo cut to phone size two ways. A normal crop keeps the middle; Cloudinary&apos;s smart crop keeps what matters. All cards above use smart crop.
         </p>
-        <div className="flex flex-wrap items-end gap-6">
-          <figure className="grid gap-2">
+        {/* one row on desktop (full photo, then the two crops at the same height); on phones the full photo gets its own row */}
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-5">
+          <figure className="grid basis-full gap-2 sm:basis-auto">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={wide} alt="The full photo" loading="lazy" className="max-h-[288px] max-w-[min(100%,420px)] border border-line bg-surface-2" />
+            <img src={wide} alt="The full photo" loading="lazy" className="h-auto w-full border border-line bg-surface-2 sm:h-[240px] sm:w-auto" />
             <figcaption className="text-eyebrow !tracking-[0.1em]">The full photo</figcaption>
           </figure>
-          {([["Normal crop (keeps the middle)", crops.plain], ["Cloudinary smart crop", crops.smart]] as const).map(([label, src]) => (
+          {([["Normal crop", crops.plain], ["Cloudinary smart crop", crops.smart]] as const).map(([label, src]) => (
             <figure key={label} className="grid gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={label} width={162} height={288} loading="lazy" className="border border-line bg-surface-2" />
-              <figcaption className="text-eyebrow !tracking-[0.1em]">{label}</figcaption>
+              <img src={src} alt={label} width={135} height={240} loading="lazy" className="h-[240px] w-[135px] border border-line bg-surface-2" />
+              <figcaption className="text-eyebrow max-w-[135px] !tracking-[0.1em]">{label}</figcaption>
             </figure>
           ))}
         </div>

@@ -21,7 +21,7 @@ export default function BlurProof({ viewUrl, rawUrl }: { viewUrl: string; rawUrl
         Try it yourself.
       </p>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={raw ? rawUrl : viewUrl} alt={raw ? "The stored public copy, with no changes applied" : "Public copy of the after photo"} className="w-full max-w-[540px] border border-line bg-surface-2" />
+      <img src={raw ? rawUrl : viewUrl} alt={raw ? "The stored public copy, with no changes applied" : "Public copy of the after photo"} className="w-full max-w-[420px] border border-line bg-surface-2" />
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={() => setRaw((v) => !v)} className={buttonVariants({ variant: "outline", size: "sm" })} aria-pressed={raw}>
           {raw ? "Show the page version again" : "Try to remove the blur"}

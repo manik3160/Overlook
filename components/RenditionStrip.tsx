@@ -28,7 +28,7 @@ export default function RenditionStrip({ renditions, enhance }: { renditions: Re
                 <span className="text-small">video file</span>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={r.preview} alt={r.label} loading="lazy" className={r.key === "blur" ? "size-6 [image-rendering:pixelated]" : "max-h-full max-w-full object-contain"} />
+                <img src={r.preview} alt={r.label} loading="lazy" className={r.key === "blur" ? "size-28 rounded-sm" /* the 24 px file, enlarged so its blur is visible */ : "max-h-full max-w-full object-contain"} />
               )}
             </a>
             <div className="flex flex-wrap items-baseline gap-x-2">
@@ -47,7 +47,7 @@ export default function RenditionStrip({ renditions, enhance }: { renditions: Re
       {enhance && (
         <div className="mt-4 grid max-w-[640px] gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <h3 className="text-[17px] font-semibold">Brightened by Cloudinary AI</h3>
+            <h3 className="text-title">Brightened by Cloudinary AI</h3>
             <CloudinaryMark says="Cloudinary AI improves light and colour for campaign copies; the evidence original is not changed" />
           </div>
           <p className="text-[15px] leading-6 text-fg-2">Drag the line. Left: as uploaded. Right: improved by Cloudinary AI for campaign use. Dark field photos gain the most.</p>
