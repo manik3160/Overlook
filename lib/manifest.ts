@@ -33,6 +33,9 @@ export type ManifestAsset = {
   public_id: string; resource_type: string; original_url: string; report_url: string
   trust_score: number | null; review_status: string; taken_at: string | null; lat: number | null; lng: number | null
   etag: string | null; phash: string | null; flags: { code: string; severity: string; reason: string }[]
+  // Cloudinary checks, only on newer reports (absent keys are left out of the hash, so older reports are unchanged)
+  file_check?: { gps: boolean; time: boolean; mismatch: boolean } // what Cloudinary read inside the stored file
+  photo_text?: { text: string; scripts: string[] } // words Cloudinary's OCR read in the photo
 }
 export type ManifestPair = { before_public_id: string; after_public_id: string; before_report_url: string; after_report_url: string; days_apart: number | null; distance_m: number | null; change_summary: string | null }
 export type ScorecardRow = { key: string; label: string; before: { hits: number; total: number } | null; after: { hits: number; total: number } | null; all: { hits: number; total: number } }

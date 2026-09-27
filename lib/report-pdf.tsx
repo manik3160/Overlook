@@ -4,6 +4,7 @@ import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@
 import { formatDay } from "@/lib/dates"
 import { trustBand } from "@/lib/trust"
 import type { ReportManifest } from "@/lib/manifest"
+import { fileCheckLine, pdfWords } from "@/lib/report-extras"
 
 // Built-in PDF fonts only cover basic Latin, so this document sticks to plain ASCII punctuation.
 const s = StyleSheet.create({
@@ -14,6 +15,8 @@ const s = StyleSheet.create({
   row: { flexDirection: "row", borderBottomWidth: 0.5, borderColor: "#bbb", paddingVertical: 3, alignItems: "center" },
   head: { fontFamily: "Helvetica-Bold" },
   mono: { fontFamily: "Courier", fontSize: 7.5 },
+  small: { fontSize: 7.5, color: "#333" },
+  warn: { color: "#8A5600" },
 })
 const frac = (c: { hits: number; total: number } | null) => (c && c.total ? `${c.hits}/${c.total}` : "-")
 const day = (iso: string | null) => (iso ? formatDay(iso) : "no time")
@@ -79,10 +82,21 @@ function ReportDocument({ manifest: m, sha256, verifyUrl, qrDataUrl }: Props) {
             <View style={{ width: 70 }}><Image src={a.report_url} style={{ width: 60, height: 45 }} /></View>
             <Text style={[s.mono, { width: 130 }]}>{a.public_id}</Text>
             <View style={{ width: 90 }}><Text>{day(a.taken_at)}</Text><Text style={s.muted}>{a.lat !== null && a.lng !== null ? `${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}` : "no GPS"}</Text></View>
-            <View style={{ width: 200 }}><Text>{band(a.trust_score)}{a.review_status !== "unreviewed" ? ` (${a.review_status})` : ""}</Text>{a.flags.map((f, i) => <Text key={i} style={s.muted}>{f.code}</Text>)}</View>
+            <View style={{ width: 200 }}>
+              <Text>{band(a.trust_score)}{a.review_status !== "unreviewed" ? ` (${a.review_status})` : ""}</Text>
+              {a.flags.map((f, i) => <Text key={i} style={s.muted}>{f.code}</Text>)}
+              {fileCheckLine(a.file_check) && <Text style={[s.small, a.file_check?.mismatch ? s.warn : s.muted]}>{fileCheckLine(a.file_check)}</Text>}
+              {(() => {
+                const w = pdfWords(a.photo_text)
+                if (!w) return null
+                const other = w.otherScripts.length ? `${w.latin ? " + " : ""}${w.otherScripts.join(", ")} script (see verification page)` : ""
+                return <Text style={s.small}>Words in photo: {w.latin ?? ""}{other}</Text>
+              })()}
+            </View>
           </View>
         ))}
-        <Text style={[s.muted, { marginTop: 8 }]}>Originals and the exact transformation URL for every photo are listed on the verification page: {verifyUrl}</Text>
+        <Text style={[s.muted, { marginTop: 8 }]}>&quot;Cloudinary read the file&quot; compares the location and time sent with the upload against what is stored inside the file itself. &quot;Words in photo&quot; is text Cloudinary read on signs and banners in the photo.</Text>
+        <Text style={[s.muted, { marginTop: 4 }]}>Originals and the exact transformation URL for every photo are listed on the verification page: {verifyUrl}</Text>
       </Page>
 
       {m.compliance && (

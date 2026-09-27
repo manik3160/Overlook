@@ -6,6 +6,7 @@ import ClaimsResult, { type ClaimsManifest } from "@/components/ClaimsResult"
 import TimestampPanel from "@/components/TimestampPanel"
 import TrustBadge from "@/components/TrustBadge"
 import StatFigure from "@/components/StatFigure"
+import { fileCheckLine } from "@/lib/report-extras"
 import { flagTitle } from "@/components/flag-copy"
 import { Eyebrow, KeyValue } from "@/components/ui/layout"
 import { supabase } from "@/lib/supabase"
@@ -142,6 +143,10 @@ export default async function VerifyPage(props: PageProps<"/verify/[reportId]">)
                 </div>
                 {a.flags.map((f, i) => <span key={i} className="text-small"><b className="font-medium text-fg">{flagTitle(f.code)}.</b> {f.reason}</span>)}
                 <span className="text-data text-fg-3">{a.taken_at ? formatTime(a.taken_at) : "no time metadata"} · {a.lat != null && a.lng != null ? `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}` : "no GPS"}</span>
+                {fileCheckLine(a.file_check) && <span className={`text-small ${a.file_check?.mismatch ? "text-review" : ""}`}><span aria-hidden="true">✦ </span>{fileCheckLine(a.file_check)}</span>}
+                {a.photo_text && (
+                  <span className="text-small"><span aria-hidden="true">✦ </span>Words Cloudinary read in the photo ({a.photo_text.scripts.join(", ")} script): <span lang="und" className="text-fg">{a.photo_text.text.replace(/\n/g, " / ")}</span></span>
+                )}
                 <span className="flex flex-wrap gap-x-4 text-[13px]">
                   <a href={a.original_url} className={link} target="_blank" rel="noreferrer">Original ↗</a>
                   <a href={a.report_url} className={link} target="_blank" rel="noreferrer">Transformation used in report ↗</a>
