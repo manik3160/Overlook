@@ -1,0 +1,8 @@
+Overlook demo kit: sample photos, NOT taken by the presenter.
+
+Photos come from Wikimedia Commons:
+- Hallo Bay beach cleanup (GYRE trip, June 2013), US National Park Service: public domain.
+- Morro Bay Coastal Cleanup Day (17 Sep 2011), Mike Baird: CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/).
+
+Location (Versova Beach, Mumbai) and dates (12 and 24 Sep 2026) were WRITTEN INTO the files for the demo.
+Say so in the video: "sample photos with demo location and dates added". The narrated video is synthetic (computer voice + these photos).
